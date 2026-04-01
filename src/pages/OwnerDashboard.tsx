@@ -3,18 +3,38 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Pitch, Booking } from '../types';
-import { Plus, Edit, Trash2, Calendar, Clock, User, MapPin, Loader2, DollarSign, BarChart3, Image as ImageIcon, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Clock, User, MapPin, Loader2, DollarSign, BarChart3, Image as ImageIcon, CheckCircle, XCircle, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+
+const mapContainerStyle = {
+  width: '100%',
+  height: '300px'
+};
+
+const defaultCenter = {
+  lat: -1.286389,
+  lng: 36.817223
+};
 
 const OwnerDashboard: React.FC = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || ''
+  });
+
   const [pitches, setPitches] = useState<Pitch[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingPitch, setIsAddingPitch] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentPhone, setPaymentPhone] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
 
   // New Pitch Form State
   const [newPitch, setNewPitch] = useState({
@@ -25,7 +45,8 @@ const OwnerDashboard: React.FC = () => {
     price_per_hour: 3000,
     description: '',
     contact_phone: '',
-    whatsapp_number: ''
+    whatsapp_number: '',
+    image_url: ''
   });
 
   const fetchData = async () => {
@@ -70,24 +91,90 @@ const OwnerDashboard: React.FC = () => {
   const handleAddPitch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    // Trigger payment first
+    setIsPaying(true);
+    setPaymentPhone(profile?.phone || '');
+  };
 
-    try {
-      const { data, error } = await supabase
-        .from('pitches')
-        .insert({
-          ...newPitch,
-          owner_id: user.id
-        })
-        .select()
-        .single();
+  const processPayment = async () => {
+    if (!paymentPhone) {
+      toast.error('Please enter a phone number');
+      return;
+    }
 
-      if (error) throw error;
+    setPaymentStatus('pending');
+    
+    // Simulate M-Pesa STK Push
+    setTimeout(async () => {
+      setPaymentStatus('success');
+      toast.success('Payment received! Finalizing your listing...');
+      
+      try {
+        setIsSubmitting(true);
+        const { image_url, ...pitchData } = newPitch;
+        
+        const { data: pitch, error: pitchError } = await supabase
+          .from('pitches')
+          .insert({
+            ...pitchData,
+            owner_id: user!.id
+          })
+          .select()
+          .single();
 
-      toast.success('Pitch added successfully!');
-      setIsAddingPitch(false);
-      fetchData();
-    } catch (error: any) {
-      toast.error(error.message || 'Error adding pitch');
+        if (pitchError) throw pitchError;
+
+        if (image_url) {
+          await supabase.from('pitch_images').insert({
+            pitch_id: pitch.id,
+            image_url: image_url,
+            is_primary: true
+          });
+        }
+
+        // Record payment
+        await supabase.from('payments').insert({
+          user_id: user!.id,
+          amount: 1000,
+          phone_number: paymentPhone,
+          status: 'completed',
+          type: 'pitch_listing',
+          reference_id: pitch.id
+        });
+
+        toast.success('Pitch added successfully!');
+        setIsAddingPitch(false);
+        setIsPaying(false);
+        setPaymentStatus('idle');
+        setNewPitch({
+          name: '',
+          location_name: '',
+          latitude: -1.286389,
+          longitude: 36.817223,
+          price_per_hour: 3000,
+          description: '',
+          contact_phone: '',
+          whatsapp_number: '',
+          image_url: ''
+        });
+        fetchData();
+      } catch (error: any) {
+        toast.error(error.message || 'Error adding pitch');
+        setPaymentStatus('failed');
+      } finally {
+        setIsSubmitting(false);
+      }
+    }, 3000);
+  };
+
+  const handleMapClick = (e: google.maps.MapMouseEvent) => {
+    if (e.latLng) {
+      setNewPitch({
+        ...newPitch,
+        latitude: e.latLng.lat(),
+        longitude: e.latLng.lng()
+      });
     }
   };
 
@@ -277,73 +364,144 @@ const OwnerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Pitch Modal (Simple Overlay) */}
+      {/* Add Pitch Modal */}
       {isAddingPitch && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsAddingPitch(false)}></div>
-          <div className="relative w-full max-w-2xl glass p-8 rounded-2xl neon-border max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <div className="relative w-full max-w-4xl glass p-8 rounded-2xl neon-border max-h-[90vh] overflow-y-auto custom-scrollbar">
             <h2 className="text-2xl font-bold mb-6">Add New Pitch</h2>
             <form onSubmit={handleAddPitch} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Pitch Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                    placeholder="e.g. Camp Toyoyo"
-                    value={newPitch.name}
-                    onChange={(e) => setNewPitch({...newPitch, name: e.target.value})}
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Left Side: Form Fields */}
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Pitch Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                        placeholder="e.g. Camp Toyoyo"
+                        value={newPitch.name}
+                        onChange={(e) => setNewPitch({...newPitch, name: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Location Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                        placeholder="e.g. Jericho, Nairobi"
+                        value={newPitch.location_name}
+                        onChange={(e) => setNewPitch({...newPitch, location_name: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">Price per Hour (KSH)</label>
+                      <input 
+                        type="number" 
+                        required
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                        value={newPitch.price_per_hour}
+                        onChange={(e) => setNewPitch({...newPitch, price_per_hour: Number(e.target.value)})}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">WhatsApp Number</label>
+                      <input 
+                        type="tel" 
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                        placeholder="254700000000"
+                        value={newPitch.whatsapp_number}
+                        onChange={(e) => setNewPitch({...newPitch, whatsapp_number: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Main Image URL</label>
+                    <div className="relative">
+                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                      <input 
+                        type="url" 
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
+                        placeholder="https://images.unsplash.com/..."
+                        value={newPitch.image_url}
+                        onChange={(e) => setNewPitch({...newPitch, image_url: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                    <textarea 
+                      rows={3}
+                      className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                      placeholder="Tell players about your facility..."
+                      value={newPitch.description}
+                      onChange={(e) => setNewPitch({...newPitch, description: e.target.value})}
+                    ></textarea>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Location Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                    placeholder="e.g. Jericho, Nairobi"
-                    value={newPitch.location_name}
-                    onChange={(e) => setNewPitch({...newPitch, location_name: e.target.value})}
-                  />
+
+                {/* Right Side: Map Picker */}
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-slate-300">Set Location on Map</label>
+                  <div className="glass rounded-xl overflow-hidden border border-white/10 h-[300px]">
+                    {isLoaded ? (
+                      <GoogleMap
+                        mapContainerStyle={mapContainerStyle}
+                        center={defaultCenter}
+                        zoom={12}
+                        onClick={handleMapClick}
+                        options={{
+                          styles: [
+                            { elementType: 'geometry', stylers: [{ color: '#020617' }] },
+                            { elementType: 'labels.text.fill', stylers: [{ color: '#94a3b8' }] },
+                            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
+                            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c4a6e' }] },
+                          ],
+                          disableDefaultUI: true,
+                          zoomControl: true,
+                        }}
+                      >
+                        <Marker 
+                          position={{ lat: newPitch.latitude, lng: newPitch.longitude }} 
+                          draggable={true}
+                          onDragEnd={(e) => {
+                            if (e.latLng) {
+                              setNewPitch({
+                                ...newPitch,
+                                latitude: e.latLng.lat(),
+                                longitude: e.latLng.lng()
+                              });
+                            }
+                          }}
+                        />
+                      </GoogleMap>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-slate-900">
+                        <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-4 text-xs text-slate-500">
+                    <div className="flex items-center">
+                      <span className="font-bold mr-1">Lat:</span> {newPitch.latitude.toFixed(6)}
+                    </div>
+                    <div className="flex items-center">
+                      <span className="font-bold mr-1">Lng:</span> {newPitch.longitude.toFixed(6)}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-500 italic">Click on the map to set the exact location of your pitch.</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Price per Hour (KSH)</label>
-                  <input 
-                    type="number" 
-                    required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                    value={newPitch.price_per_hour}
-                    onChange={(e) => setNewPitch({...newPitch, price_per_hour: Number(e.target.value)})}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">WhatsApp Number</label>
-                  <input 
-                    type="tel" 
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                    placeholder="254700000000"
-                    value={newPitch.whatsapp_number}
-                    onChange={(e) => setNewPitch({...newPitch, whatsapp_number: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
-                <textarea 
-                  rows={4}
-                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                  placeholder="Tell players about your facility..."
-                  value={newPitch.description}
-                  onChange={(e) => setNewPitch({...newPitch, description: e.target.value})}
-                ></textarea>
-              </div>
-
-              <div className="flex space-x-4 pt-4">
+              <div className="flex space-x-4 pt-6 border-t border-white/10">
                 <button 
                   type="button" 
                   onClick={() => setIsAddingPitch(false)}
@@ -353,12 +511,70 @@ const OwnerDashboard: React.FC = () => {
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 btn-primary"
+                  disabled={isSubmitting}
+                  className="flex-1 btn-primary flex items-center justify-center space-x-2"
                 >
-                  Create Pitch
+                  {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Create Pitch Listing</span>}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* M-Pesa Payment Modal */}
+      {isPaying && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => !isSubmitting && setIsPaying(false)}></div>
+          <div className="relative w-full max-w-md glass p-8 rounded-2xl neon-border text-center">
+            <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <DollarSign className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Listing Fee Required</h2>
+            <p className="text-slate-400 mb-6">To list your pitch on PitchFinder KE, a one-time fee of <span className="text-emerald-400 font-bold text-lg">KSH 1,000</span> is required.</p>
+            
+            {paymentStatus === 'idle' ? (
+              <div className="space-y-4">
+                <div className="text-left">
+                  <label className="block text-xs text-slate-500 uppercase tracking-widest mb-2 ml-1">M-Pesa Phone Number</label>
+                  <input 
+                    type="tel" 
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="254700000000"
+                    value={paymentPhone}
+                    onChange={(e) => setPaymentPhone(e.target.value)}
+                  />
+                </div>
+                <button 
+                  onClick={processPayment}
+                  className="btn-primary w-full py-4 font-bold"
+                >
+                  Pay with M-Pesa
+                </button>
+                <button 
+                  onClick={() => setIsPaying(false)}
+                  className="text-slate-500 text-sm hover:text-white transition-colors"
+                >
+                  Cancel Listing
+                </button>
+              </div>
+            ) : paymentStatus === 'pending' ? (
+              <div className="py-8 space-y-4">
+                <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mx-auto" />
+                <p className="text-emerald-400 font-medium animate-pulse">Waiting for M-Pesa confirmation...</p>
+                <p className="text-xs text-slate-500">Please check your phone and enter your M-Pesa PIN.</p>
+              </div>
+            ) : paymentStatus === 'success' ? (
+              <div className="py-8 space-y-4">
+                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
+                <p className="text-emerald-400 font-bold">Payment Successful!</p>
+              </div>
+            ) : (
+              <div className="py-8 space-y-4">
+                <XCircle className="w-12 h-12 text-red-500 mx-auto" />
+                <p className="text-red-400 font-bold">Payment Failed</p>
+                <button onClick={() => setPaymentStatus('idle')} className="btn-secondary w-full">Try Again</button>
+              </div>
+            )}
           </div>
         </div>
       )}

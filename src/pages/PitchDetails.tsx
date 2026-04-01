@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Pitch, Review, Booking } from '../types';
-import { MapPin, Star, Clock, Phone, MessageCircle, Calendar, Users, Loader2, ChevronLeft, ChevronRight, ShieldCheck } from 'lucide-react';
+import { MapPin, Star, Clock, Phone, MessageCircle, Calendar, Users, Loader2, ChevronLeft, ChevronRight, ShieldCheck, Heart, Share2, DollarSign, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -18,6 +18,12 @@ const PitchDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentPhone, setPaymentPhone] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   // Booking Form State
   const [bookingDate, setBookingDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -35,6 +41,16 @@ const PitchDetails: React.FC = () => {
       
       if (error) throw error;
       setPitch(data);
+
+      if (user) {
+        const { data: favData } = await supabase
+          .from('favorites')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('pitch_id', id)
+          .single();
+        setIsFavorite(!!favData);
+      }
 
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
@@ -54,7 +70,51 @@ const PitchDetails: React.FC = () => {
 
   useEffect(() => {
     fetchPitchDetails();
-  }, [id]);
+  }, [id, user]);
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      toast.error('Please login to favorite pitches');
+      return;
+    }
+
+    setFavoriteLoading(true);
+    try {
+      if (isFavorite) {
+        await supabase
+          .from('favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('pitch_id', id);
+        setIsFavorite(false);
+        toast.success('Removed from favorites');
+      } else {
+        await supabase
+          .from('favorites')
+          .insert({ user_id: user.id, pitch_id: id });
+        setIsFavorite(true);
+        toast.success('Added to favorites');
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
+  const sharePitch = () => {
+    const url = window.location.href;
+    if (navigator.share) {
+      navigator.share({
+        title: pitch?.name,
+        text: `Check out this pitch on PitchFinder KE: ${pitch?.name}`,
+        url: url,
+      });
+    } else {
+      navigator.clipboard.writeText(url);
+      toast.success('Link copied to clipboard!');
+    }
+  };
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,37 +124,78 @@ const PitchDetails: React.FC = () => {
       return;
     }
 
-    setBookingLoading(true);
-    try {
-      const totalPrice = (pitch?.price_per_hour || 0) * duration;
-      
-      // Calculate end time
-      const [hours, minutes] = startTime.split(':').map(Number);
-      const endHours = hours + duration;
-      const endTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    setIsPaying(true);
+    setPaymentPhone(profile?.phone || '');
+  };
 
-      const { error } = await supabase
-        .from('bookings')
-        .insert({
-          pitch_id: id,
-          user_id: user.id,
-          booking_date: bookingDate,
-          start_time: startTime,
-          end_time: endTime,
-          team_name: teamName,
-          total_price: totalPrice,
-          status: 'pending'
+  const processPayment = async () => {
+    if (!paymentPhone) {
+      toast.error('Please enter a phone number');
+      return;
+    }
+
+    setPaymentStatus('pending');
+    
+    // Simulate M-Pesa STK Push
+    setTimeout(async () => {
+      setPaymentStatus('success');
+      toast.success('Payment received! Booking confirmed.');
+      
+      try {
+        setBookingLoading(true);
+        const totalPrice = (pitch?.price_per_hour || 0) * duration;
+        
+        // Calculate end time
+        const [hours, minutes] = startTime.split(':').map(Number);
+        const endHours = hours + duration;
+        const endTime = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+        const { data: booking, error } = await supabase
+          .from('bookings')
+          .insert({
+            pitch_id: id,
+            user_id: user!.id,
+            booking_date: bookingDate,
+            start_time: startTime,
+            end_time: endTime,
+            team_name: teamName,
+            total_price: totalPrice,
+            status: 'confirmed'
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // Record payment
+        await supabase.from('payments').insert({
+          user_id: user!.id,
+          amount: totalPrice,
+          phone_number: paymentPhone,
+          status: 'completed',
+          type: 'booking_deposit',
+          reference_id: booking.id
         });
 
-      if (error) throw error;
+        // Notify owner
+        await supabase.from('notifications').insert({
+          user_id: pitch!.owner_id,
+          title: 'New Booking Confirmed!',
+          message: `A new booking for ${pitch!.name} on ${format(new Date(bookingDate), 'MMM d')} has been paid and confirmed.`,
+          type: 'booking',
+          link: '/owner-dashboard'
+        });
 
-      toast.success('Booking request sent! The owner will confirm shortly.');
-      navigate('/dashboard');
-    } catch (error: any) {
-      toast.error(error.message || 'Error creating booking');
-    } finally {
-      setBookingLoading(false);
-    }
+        setShowConfirmation(true);
+        setIsPaying(false);
+        setPaymentStatus('idle');
+      } catch (error: any) {
+        toast.error(error.message || 'Error creating booking');
+        setPaymentStatus('failed');
+      } finally {
+        setBookingLoading(false);
+      }
+    }, 3000);
   };
 
   if (loading) {
@@ -153,7 +254,7 @@ const PitchDetails: React.FC = () => {
 
           {/* Pitch Info */}
           <div className="glass p-8 rounded-2xl neon-border">
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
               <div>
                 <h1 className="text-3xl font-bold mb-2">{pitch.name}</h1>
                 <div className="flex items-center text-slate-400">
@@ -161,12 +262,31 @@ const PitchDetails: React.FC = () => {
                   <span>{pitch.location_name}</span>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center text-yellow-400 mb-1">
-                  <Star className="w-5 h-5 fill-current" />
-                  <span className="ml-1 text-xl font-bold">{pitch.rating || 'New'}</span>
+              <div className="flex items-center space-x-3 self-end md:self-start">
+                <button 
+                  onClick={toggleFavorite}
+                  disabled={favoriteLoading}
+                  className={`p-3 rounded-xl glass backdrop-blur-md transition-all flex items-center space-x-2 ${
+                    isFavorite ? 'bg-red-500/20 text-red-500 border-red-500/50' : 'bg-white/5 text-slate-400 hover:text-red-500 hover:bg-red-500/10'
+                  }`}
+                >
+                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+                  <span className="text-sm font-bold">{isFavorite ? 'Favorited' : 'Favorite'}</span>
+                </button>
+                <button 
+                  onClick={sharePitch}
+                  className="p-3 rounded-xl glass bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all flex items-center space-x-2"
+                >
+                  <Share2 className="w-5 h-5" />
+                  <span className="text-sm font-bold">Share</span>
+                </button>
+                <div className="text-right ml-4">
+                  <div className="flex items-center text-yellow-400 mb-1">
+                    <Star className="w-5 h-5 fill-current" />
+                    <span className="ml-1 text-xl font-bold">{pitch.rating || 'New'}</span>
+                  </div>
+                  <span className="text-slate-500 text-sm">{pitch.review_count} reviews</span>
                 </div>
-                <span className="text-slate-500 text-sm">{pitch.review_count} reviews</span>
               </div>
             </div>
 
@@ -333,13 +453,101 @@ const PitchDetails: React.FC = () => {
                   {bookingLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Confirm Booking</span>}
                 </button>
                 <p className="text-[10px] text-slate-500 text-center mt-4 uppercase tracking-widest">
-                  Secure payment at the facility
+                  Secure M-Pesa Payment Required
                 </p>
               </div>
             </form>
           </div>
         </div>
       </div>
+
+      {/* M-Pesa Payment Modal */}
+      {isPaying && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => !bookingLoading && setIsPaying(false)}></div>
+          <div className="relative w-full max-w-md glass p-8 rounded-2xl neon-border text-center">
+            <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <DollarSign className="w-8 h-8 text-white" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">Confirm Booking Payment</h2>
+            <p className="text-slate-400 mb-6">Total amount to pay: <span className="text-emerald-400 font-bold text-lg">KSH {(pitch.price_per_hour * duration).toLocaleString()}</span></p>
+            
+            {paymentStatus === 'idle' ? (
+              <div className="space-y-4">
+                <div className="text-left">
+                  <label className="block text-xs text-slate-500 uppercase tracking-widest mb-2 ml-1">M-Pesa Phone Number</label>
+                  <input 
+                    type="tel" 
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="254700000000"
+                    value={paymentPhone}
+                    onChange={(e) => setPaymentPhone(e.target.value)}
+                  />
+                </div>
+                <button 
+                  onClick={processPayment}
+                  className="btn-primary w-full py-4 font-bold"
+                >
+                  Pay with M-Pesa
+                </button>
+                <button 
+                  onClick={() => setIsPaying(false)}
+                  className="text-slate-500 text-sm hover:text-white transition-colors"
+                >
+                  Cancel Booking
+                </button>
+              </div>
+            ) : paymentStatus === 'pending' ? (
+              <div className="py-8 space-y-4">
+                <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mx-auto" />
+                <p className="text-emerald-400 font-medium animate-pulse">Waiting for M-Pesa confirmation...</p>
+                <p className="text-xs text-slate-500">Please check your phone and enter your M-Pesa PIN.</p>
+              </div>
+            ) : paymentStatus === 'success' ? (
+              <div className="py-8 space-y-4">
+                <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
+                <p className="text-emerald-400 font-bold">Payment Successful!</p>
+              </div>
+            ) : (
+              <div className="py-8 space-y-4">
+                <XCircle className="w-12 h-12 text-red-500 mx-auto" />
+                <p className="text-red-400 font-bold">Payment Failed</p>
+                <button onClick={() => setPaymentStatus('idle')} className="btn-secondary w-full">Try Again</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Attendance Confirmation Modal */}
+      {showConfirmation && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl"></div>
+          <div className="relative w-full max-w-lg glass p-10 rounded-3xl neon-border text-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-8">
+              <ShieldCheck className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-bold mb-4">Booking Confirmed!</h2>
+            <p className="text-slate-300 mb-8 leading-relaxed">
+              Your booking for <span className="text-white font-bold">{pitch.name}</span> on <span className="text-white font-bold">{format(new Date(bookingDate), 'MMMM d')}</span> is now active.
+            </p>
+            
+            <div className="glass bg-white/5 p-6 rounded-2xl mb-8 text-left border border-white/10">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-3">Anti-Scam Protocol</h4>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                To ensure a safe experience, both you and the pitch owner must be present at the facility to finalize the match. Please show your digital receipt to the owner upon arrival.
+              </p>
+            </div>
+
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="btn-primary w-full py-4 text-lg font-bold"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

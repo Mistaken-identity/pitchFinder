@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Booking, MatchRequest, Pitch } from '../types';
-import { Calendar, Trophy, MapPin, Clock, CheckCircle, XCircle, Loader2, Plus, Users } from 'lucide-react';
+import { Booking, MatchRequest, Pitch, Notification } from '../types';
+import { Calendar, Trophy, MapPin, Clock, CheckCircle, XCircle, Loader2, Plus, Users, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import PitchCard from '../components/PitchCard';
@@ -13,6 +13,7 @@ const Dashboard: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [matchRequests, setMatchRequests] = useState<MatchRequest[]>([]);
   const [nearbyPitches, setNearbyPitches] = useState<Pitch[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -52,6 +53,16 @@ const Dashboard: React.FC = () => {
         .limit(3);
       
       setNearbyPitches(pitchesData || []);
+
+      // Fetch notifications
+      const { data: notificationsData } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      setNotifications(notificationsData || []);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -62,6 +73,19 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  const markAsRead = async (id: string) => {
+    try {
+      await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', id);
+      
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -112,6 +136,47 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Bookings & Matches */}
         <div className="lg:col-span-2 space-y-8">
+          {/* Notifications */}
+          {notifications.length > 0 && (
+            <div className="glass p-6 rounded-2xl neon-border bg-cyan-500/5">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold flex items-center space-x-2">
+                  <Bell className="w-5 h-5 text-cyan-400" />
+                  <span>Recent Notifications</span>
+                </h2>
+              </div>
+              <div className="space-y-3">
+                {notifications.map((notif) => (
+                  <div 
+                    key={notif.id} 
+                    className={`p-4 rounded-xl border transition-all flex items-start space-x-4 ${
+                      notif.read ? 'bg-white/5 border-white/5 opacity-60' : 'bg-cyan-500/10 border-cyan-500/20'
+                    }`}
+                    onClick={() => !notif.read && markAsRead(notif.id)}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      notif.type === 'match_confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-cyan-500/20 text-cyan-400'
+                    }`}>
+                      <Bell className="w-4 h-4" />
+                    </div>
+                    <div className="flex-grow">
+                      <div className="flex justify-between items-start">
+                        <h3 className="font-bold text-sm">{notif.title}</h3>
+                        <span className="text-[10px] text-slate-500">{format(new Date(notif.created_at), 'MMM d, HH:mm')}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">{notif.message}</p>
+                      {notif.link && (
+                        <Link to={notif.link} className="text-[10px] text-cyan-400 hover:underline mt-2 inline-block font-bold uppercase tracking-widest">
+                          View Details
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Upcoming Bookings */}
           <div className="glass p-6 rounded-2xl neon-border">
             <div className="flex items-center justify-between mb-6">

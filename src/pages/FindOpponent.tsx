@@ -26,6 +26,7 @@ const FindOpponent: React.FC = () => {
     match_date: format(new Date(), 'yyyy-MM-dd'),
     match_time: '18:00',
     skill_level_required: 'intermediate',
+    bet_amount: 0,
     description: ''
   });
 
@@ -34,8 +35,13 @@ const FindOpponent: React.FC = () => {
     name: '',
     description: '',
     skill_level: 'intermediate',
-    location: ''
+    location: '',
+    captain_phone: '',
+    assistant_name: '',
+    assistant_phone: ''
   });
+
+  const [showWelcomeNote, setShowWelcomeNote] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -94,7 +100,7 @@ const FindOpponent: React.FC = () => {
 
       if (error) throw error;
 
-      toast.success('Team created successfully!');
+      setShowWelcomeNote(true);
       setIsCreatingTeam(false);
       await fetchData();
       
@@ -154,6 +160,18 @@ const FindOpponent: React.FC = () => {
         .eq('id', matchId);
 
       if (error) throw error;
+
+      // Create notification for the team that posted the request
+      const match = matchRequests.find(m => m.id === matchId);
+      if (match && match.team) {
+        await supabase.from('notifications').insert({
+          user_id: match.team.captain_id,
+          title: 'Match Confirmed!',
+          message: `Your match request for ${format(new Date(match.match_date), 'MMM d')} has been accepted by ${myTeams[0].name}.`,
+          type: 'match_confirmed',
+          link: '/dashboard'
+        });
+      }
 
       toast.success('Challenge accepted! Get ready for the match.');
       fetchData();
@@ -238,6 +256,12 @@ const FindOpponent: React.FC = () => {
                       <MapPin className="w-4 h-4 mr-3 text-emerald-500" />
                       <span>{match.pitch?.name || 'Location TBD'}</span>
                     </div>
+                    {match.bet_amount > 0 && (
+                      <div className="flex items-center text-sm text-yellow-400 font-bold">
+                        <Trophy className="w-4 h-4 mr-3" />
+                        <span>Bet: KSH {match.bet_amount.toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="pt-6 border-t border-white/10 flex items-center justify-between">
@@ -371,6 +395,18 @@ const FindOpponent: React.FC = () => {
                   </select>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Bet Amount (KSH) - Optional</label>
+                  <input 
+                    type="number" 
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="e.g. 500"
+                    value={newMatch.bet_amount}
+                    onChange={(e) => setNewMatch({...newMatch, bet_amount: Number(e.target.value)})}
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1 italic">Place a bet to make the match more interesting.</p>
+                </div>
+
                 <div className="flex space-x-4 pt-4">
                   <button type="button" onClick={() => setIsPosting(false)} className="flex-1 btn-secondary">Cancel</button>
                   <button type="submit" className="flex-1 btn-primary">Post Request</button>
@@ -439,11 +475,75 @@ const FindOpponent: React.FC = () => {
                 />
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Captain's Phone (WhatsApp)</label>
+                <input 
+                  type="tel" 
+                  required
+                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  placeholder="254700000000"
+                  value={newTeam.captain_phone}
+                  onChange={(e) => setNewTeam({...newTeam, captain_phone: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Assistant Name</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="Assistant Name"
+                    value={newTeam.assistant_name}
+                    onChange={(e) => setNewTeam({...newTeam, assistant_name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Assistant Phone</label>
+                  <input 
+                    type="tel" 
+                    required
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="254700000000"
+                    value={newTeam.assistant_phone}
+                    onChange={(e) => setNewTeam({...newTeam, assistant_phone: e.target.value})}
+                  />
+                </div>
+              </div>
+
               <div className="flex space-x-4 pt-4">
                 <button type="button" onClick={() => setIsCreatingTeam(false)} className="flex-1 btn-secondary">Cancel</button>
                 <button type="submit" className="flex-1 btn-primary">Create Team</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Welcome Note Modal */}
+      {showWelcomeNote && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setShowWelcomeNote(false)}></div>
+          <div className="relative w-full max-w-md glass p-10 rounded-3xl neon-border text-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-6">
+              <Trophy className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-bold mb-4 neon-text">Welcome to the Pitch!</h2>
+            <p className="text-slate-300 mb-8 leading-relaxed italic">
+              "Congratulations on successfully creating your team! Remember, in football, the ball is round, but your chances of winning are currently flat. Try not to break any legs—unless they're the opponent's. See you on the pitch, if you don't chicken out first!"
+            </p>
+            <button 
+              onClick={() => {
+                setShowWelcomeNote(false);
+                if (pendingMatchId) {
+                  handleAcceptChallenge(pendingMatchId);
+                  setPendingMatchId(null);
+                }
+              }}
+              className="btn-primary w-full py-4 text-lg font-bold"
+            >
+              Let's Get Thrashed!
+            </button>
           </div>
         </div>
       )}

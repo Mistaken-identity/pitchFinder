@@ -18,6 +18,7 @@ const Navbar: React.FC = () => {
   const navLinks = [
     { name: 'Discover', path: '/discover', icon: MapPin },
     { name: 'Find Opponent', path: '/find-opponent', icon: Trophy },
+    { name: 'Tournaments', path: '/tournaments', icon: Trophy },
   ];
 
   if (user) {

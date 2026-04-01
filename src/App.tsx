@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import FindOpponent from './pages/FindOpponent';
 import Profile from './pages/Profile';
+import Tournaments from './pages/Tournaments';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/owner-dashboard" element={<OwnerDashboard />} />
             <Route path="/find-opponent" element={<FindOpponent />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/tournaments" element={<Tournaments />} />
           </Routes>
         </Layout>
       </Router>

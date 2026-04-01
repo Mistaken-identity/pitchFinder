@@ -68,6 +68,9 @@ export interface Team {
   logo_url: string | null;
   skill_level: 'beginner' | 'intermediate' | 'advanced' | 'pro';
   location: string | null;
+  captain_phone: string;
+  assistant_name: string;
+  assistant_phone: string;
   created_at: string;
 }
 
@@ -78,10 +81,47 @@ export interface MatchRequest {
   match_date: string;
   match_time: string;
   skill_level_required: string | null;
+  bet_amount: number;
   status: 'open' | 'matched' | 'completed' | 'cancelled';
   opponent_team_id: string | null;
   description: string | null;
   created_at: string;
   team?: Team;
   pitch?: Pitch;
+}
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'match_request' | 'match_confirmed' | 'booking' | 'payment';
+  read: boolean;
+  link: string | null;
+  created_at: string;
+}
+
+export interface Tournament {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  start_date: string;
+  end_date: string;
+  prize_pool: string | null;
+  entry_fee: number;
+  image_url: string | null;
+  created_at: string;
+}
+
+export interface Payment {
+  id: string;
+  user_id: string;
+  amount: number;
+  phone_number: string;
+  checkout_request_id: string | null;
+  status: 'pending' | 'completed' | 'failed';
+  type: 'pitch_listing' | 'booking_deposit';
+  reference_id: string | null;
+  created_at: string;
 }

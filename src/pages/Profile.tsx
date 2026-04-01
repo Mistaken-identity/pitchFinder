@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Phone, Mail, ShieldCheck, Users, Loader2, Camera, Save } from 'lucide-react';
+import { User, Phone, Mail, ShieldCheck, Users, Loader2, Camera, Save, Heart, MapPin } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Link } from 'react-router-dom';
+import { Pitch } from '../types';
 
 const Profile: React.FC = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [favorites, setFavorites] = useState<Pitch[]>([]);
+  const [favsLoading, setFavsLoading] = useState(true);
   const [formData, setFormData] = useState({
     full_name: '',
     phone: '',
@@ -21,8 +25,26 @@ const Profile: React.FC = () => {
         phone: profile.phone || '',
         avatar_url: profile.avatar_url || ''
       });
+      fetchFavorites();
     }
   }, [profile]);
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('favorites')
+        .select('*, pitch:pitches(*, images:pitch_images(*))')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setFavorites(data?.map(f => f.pitch) || []);
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+    } finally {
+      setFavsLoading(false);
+    }
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +82,7 @@ const Profile: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="glass p-8 rounded-3xl neon-border relative overflow-hidden">
+      <div className="glass p-8 rounded-3xl neon-border relative overflow-hidden mb-10">
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
         
         <div className="flex flex-col md:flex-row items-center md:items-start gap-10">
@@ -161,6 +183,47 @@ const Profile: React.FC = () => {
             </form>
           </div>
         </div>
+      </div>
+
+      {/* Favorites Section */}
+      <div className="mb-10">
+        <h2 className="text-2xl font-bold mb-6 flex items-center space-x-2">
+          <Heart className="w-6 h-6 text-red-500 fill-current" />
+          <span>My Favorites</span>
+        </h2>
+        {favsLoading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+          </div>
+        ) : favorites.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {favorites.map(pitch => (
+              <Link key={pitch.id} to={`/pitch/${pitch.id}`} className="glass p-4 rounded-2xl neon-border flex items-center space-x-4 hover:bg-white/5 transition-all">
+                <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0">
+                  <img 
+                    src={pitch.images?.[0]?.image_url || `https://picsum.photos/seed/${pitch.id}/200/200`} 
+                    alt={pitch.name} 
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <div className="flex-grow min-w-0">
+                  <h3 className="font-bold truncate">{pitch.name}</h3>
+                  <div className="flex items-center text-xs text-slate-500 mt-1">
+                    <MapPin className="w-3 h-3 mr-1 text-emerald-500" />
+                    <span className="truncate">{pitch.location_name}</span>
+                  </div>
+                  <p className="text-emerald-400 font-bold text-sm mt-1">KSH {pitch.price_per_hour}/hr</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-10 glass bg-white/5 rounded-2xl border border-dashed border-white/10">
+            <p className="text-slate-500">You haven't favorited any pitches yet.</p>
+            <Link to="/discover" className="text-emerald-400 text-sm hover:underline mt-2 inline-block">Explore pitches</Link>
+          </div>
+        )}
       </div>
 
       {/* Account Security Info */}
