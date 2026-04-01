@@ -136,7 +136,7 @@ const OwnerDashboard: React.FC = () => {
         // Record payment
         await supabase.from('payments').insert({
           user_id: user!.id,
-          amount: 1000,
+          amount: 500,
           phone_number: paymentPhone,
           status: 'completed',
           type: 'pitch_listing',
@@ -530,7 +530,7 @@ const OwnerDashboard: React.FC = () => {
               <DollarSign className="w-8 h-8 text-white" />
             </div>
             <h2 className="text-2xl font-bold mb-2">Listing Fee Required</h2>
-            <p className="text-slate-400 mb-6">To list your pitch on PitchFinder KE, a one-time fee of <span className="text-emerald-400 font-bold text-lg">KSH 1,000</span> is required.</p>
+            <p className="text-slate-400 mb-6">To list your pitch on PitchFinder KE, a one-time fee of <span className="text-emerald-400 font-bold text-lg">KSH 500</span> is required.</p>
             
             {paymentStatus === 'idle' ? (
               <div className="space-y-4">

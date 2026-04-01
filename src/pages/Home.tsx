@@ -1,10 +1,29 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { MapPin, Users, Calendar, ShieldCheck, ArrowRight, Trophy } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { MapPin, Users, Calendar, ShieldCheck, ArrowRight, Trophy, Code } from 'lucide-react';
+
+const HUMOR_QUOTES = [
+  "In football, the ball is round. In coding, the bugs are everywhere. Both will ruin your weekend.",
+  "Why did the developer go to the football match? To see the 'pitch' deck.",
+  "My code is like a Sunday league defender: slow, buggy, and always missing the target.",
+  "A 'clean sheet' in football is a dream. A 'clean build' in coding is a miracle.",
+  "Footballers dive for penalties. Developers dive into stack overflow. Both are looking for a quick fix.",
+  "Referees use VAR. Developers use console.log. Both still get it wrong half the time.",
+  "The only thing more stressful than a penalty shootout is a production deployment on a Friday."
+];
 
 const Home: React.FC = () => {
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIndex((prev) => (prev + 1) % HUMOR_QUOTES.length);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
@@ -106,6 +125,34 @@ const Home: React.FC = () => {
               <span>Register Your Pitch</span>
               <ShieldCheck className="w-5 h-5" />
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Animated Humor & Founder Recognition */}
+      <section className="py-16 border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <div className="mb-12 h-24 flex items-center justify-center">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={quoteIndex}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.5 }}
+                className="flex items-center space-x-4 text-slate-400 italic text-lg"
+              >
+                <Code className="w-6 h-6 text-emerald-500 shrink-0" />
+                <p>"{HUMOR_QUOTES[quoteIndex]}"</p>
+                <Trophy className="w-6 h-6 text-emerald-500 shrink-0" />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          
+          <div className="pt-8 border-t border-white/5">
+            <p className="text-slate-500 text-sm uppercase tracking-[0.3em] mb-2">Developed by</p>
+            <h4 className="text-2xl font-bold neon-text">Antony Emong'oluk</h4>
+            <p className="text-xs text-slate-600 mt-2">Founder & Lead Architect</p>
           </div>
         </div>
       </section>

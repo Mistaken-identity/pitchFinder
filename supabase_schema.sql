@@ -70,7 +70,6 @@ CREATE TABLE teams (
   skill_level TEXT CHECK (skill_level IN ('beginner', 'intermediate', 'advanced', 'pro')) DEFAULT 'intermediate',
   location TEXT,
   captain_phone TEXT NOT NULL,
-  assistant_name TEXT NOT NULL,
   assistant_phone TEXT NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -114,6 +113,7 @@ CREATE TABLE notifications (
 -- 10. Tournaments table
 CREATE TABLE tournaments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  owner_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   location TEXT NOT NULL,
@@ -160,6 +160,9 @@ CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE U
 
 -- Tournaments Policies
 CREATE POLICY "Tournaments are viewable by everyone" ON tournaments FOR SELECT USING (true);
+CREATE POLICY "Users can create tournaments" ON tournaments FOR INSERT WITH CHECK (auth.uid() = owner_id);
+CREATE POLICY "Owners can update own tournaments" ON tournaments FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "Owners can delete own tournaments" ON tournaments FOR DELETE USING (auth.uid() = owner_id);
 
 -- Payments Policies
 CREATE POLICY "Users can view own payments" ON payments FOR SELECT USING (auth.uid() = user_id);

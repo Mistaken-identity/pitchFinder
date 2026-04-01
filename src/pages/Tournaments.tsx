@@ -2,33 +2,72 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tournament } from '../types';
-import { Trophy, Calendar, MapPin, DollarSign, Loader2, Search } from 'lucide-react';
+import { Trophy, Calendar, MapPin, DollarSign, Loader2, Search, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
 
 const Tournaments: React.FC = () => {
+  const { user } = useAuth();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTournament, setNewTournament] = useState({
+    title: '',
+    description: '',
+    location: '',
+    start_date: format(new Date(), 'yyyy-MM-dd'),
+    end_date: format(new Date(), 'yyyy-MM-dd'),
+    prize_pool: '',
+    entry_fee: 0,
+    image_url: ''
+  });
+
+  const fetchTournaments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('tournaments')
+        .select('*')
+        .order('start_date', { ascending: true });
+      
+      if (error) throw error;
+      setTournaments(data || []);
+    } catch (error) {
+      console.error('Error fetching tournaments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchTournaments = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('tournaments')
-          .select('*')
-          .order('start_date', { ascending: true });
-        
-        if (error) throw error;
-        setTournaments(data || []);
-      } catch (error) {
-        console.error('Error fetching tournaments:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchTournaments();
   }, []);
+
+  const handleCreateTournament = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error('Please login to create a tournament');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('tournaments')
+        .insert({
+          ...newTournament,
+          owner_id: user.id
+        });
+
+      if (error) throw error;
+
+      toast.success('Tournament created successfully!');
+      setIsCreating(false);
+      fetchTournaments();
+    } catch (error: any) {
+      toast.error(error.message || 'Error creating tournament');
+    }
+  };
 
   const filteredTournaments = tournaments.filter(t => 
     t.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -50,15 +89,24 @@ const Tournaments: React.FC = () => {
           <h1 className="text-3xl font-bold">Upcoming <span className="neon-text">Tournaments</span></h1>
           <p className="text-slate-400">Join the biggest football events in Kenya and win big.</p>
         </div>
-        <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-          <input 
-            type="text" 
-            placeholder="Search tournaments..."
-            className="w-full glass bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+            <input 
+              type="text" 
+              placeholder="Search tournaments..."
+              className="w-full glass bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <button 
+            onClick={() => setIsCreating(true)}
+            className="btn-primary flex items-center space-x-2 w-full md:w-auto"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Create Tournament</span>
+          </button>
         </div>
       </div>
 
@@ -105,6 +153,122 @@ const Tournaments: React.FC = () => {
         <div className="text-center py-20 glass bg-white/5 rounded-3xl border border-dashed border-white/10">
           <Trophy className="w-12 h-12 text-slate-700 mx-auto mb-4" />
           <p className="text-slate-500">No tournaments found matching your search.</p>
+        </div>
+      )}
+
+      {/* Create Tournament Modal */}
+      {isCreating && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsCreating(false)}></div>
+          <div className="relative w-full max-w-2xl glass p-8 rounded-2xl neon-border max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Create Tournament</h2>
+              <button onClick={() => setIsCreating(false)} className="text-slate-500 hover:text-white">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleCreateTournament} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Tournament Title</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  placeholder="e.g. Nairobi Summer Cup"
+                  value={newTournament.title}
+                  onChange={(e) => setNewTournament({...newTournament, title: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                <textarea 
+                  required
+                  rows={3}
+                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  placeholder="Tell teams about the tournament..."
+                  value={newTournament.description}
+                  onChange={(e) => setNewTournament({...newTournament, description: e.target.value})}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Location</label>
+                  <input 
+                    type="text" 
+                    required
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="e.g. Camp Toyoyo"
+                    value={newTournament.location}
+                    onChange={(e) => setNewTournament({...newTournament, location: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Image URL (Optional)</label>
+                  <input 
+                    type="url" 
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="https://..."
+                    value={newTournament.image_url}
+                    onChange={(e) => setNewTournament({...newTournament, image_url: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
+                  <input 
+                    type="date" 
+                    required
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    value={newTournament.start_date}
+                    onChange={(e) => setNewTournament({...newTournament, start_date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">End Date</label>
+                  <input 
+                    type="date" 
+                    required
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    value={newTournament.end_date}
+                    onChange={(e) => setNewTournament({...newTournament, end_date: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Prize Pool</label>
+                  <input 
+                    type="text" 
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="e.g. KSH 50,000"
+                    value={newTournament.prize_pool}
+                    onChange={(e) => setNewTournament({...newTournament, prize_pool: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Entry Fee (KSH)</label>
+                  <input 
+                    type="number" 
+                    required
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    value={newTournament.entry_fee}
+                    onChange={(e) => setNewTournament({...newTournament, entry_fee: Number(e.target.value)})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-4 pt-4">
+                <button type="button" onClick={() => setIsCreating(false)} className="flex-1 btn-secondary">Cancel</button>
+                <button type="submit" className="flex-1 btn-primary">Create Tournament</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

@@ -69,7 +69,6 @@ export interface Team {
   skill_level: 'beginner' | 'intermediate' | 'advanced' | 'pro';
   location: string | null;
   captain_phone: string;
-  assistant_name: string;
   assistant_phone: string;
   created_at: string;
 }
@@ -103,6 +102,7 @@ export interface Notification {
 
 export interface Tournament {
   id: string;
+  owner_id: string;
   title: string;
   description: string;
   location: string;

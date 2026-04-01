@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MatchRequest, Team, Pitch } from '../types';
-import { Trophy, Users, Calendar, MapPin, Clock, Plus, Loader2, ShieldCheck, MessageCircle } from 'lucide-react';
+import { Trophy, Users, Calendar, MapPin, Clock, Plus, Loader2, ShieldCheck, MessageCircle, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -37,10 +37,10 @@ const FindOpponent: React.FC = () => {
     skill_level: 'intermediate',
     location: '',
     captain_phone: '',
-    assistant_name: '',
     assistant_phone: ''
   });
 
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [showWelcomeNote, setShowWelcomeNote] = useState(false);
 
   const fetchData = async () => {
@@ -53,6 +53,14 @@ const FindOpponent: React.FC = () => {
         .order('match_date', { ascending: true });
       
       setMatchRequests(matchesData || []);
+
+      // Fetch all teams
+      const { data: allTeamsData } = await supabase
+        .from('teams')
+        .select('*')
+        .limit(20);
+      
+      setAllTeams(allTeamsData || []);
 
       // Fetch user's teams
       if (user) {
@@ -487,18 +495,7 @@ const FindOpponent: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Assistant Name</label>
-                  <input 
-                    type="text" 
-                    required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                    placeholder="Assistant Name"
-                    value={newTeam.assistant_name}
-                    onChange={(e) => setNewTeam({...newTeam, assistant_name: e.target.value})}
-                  />
-                </div>
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Assistant Phone</label>
                   <input 
@@ -520,6 +517,65 @@ const FindOpponent: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* All Teams Section */}
+      <div className="mt-16">
+        <h2 className="text-2xl font-bold mb-8 flex items-center space-x-2">
+          <Users className="w-6 h-6 text-emerald-400" />
+          <span>Registered Teams</span>
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {allTeams.map((team) => (
+            <div key={team.id} className="glass p-6 rounded-2xl neon-border text-center group hover:bg-white/5 transition-all">
+              <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4 border border-white/10">
+                {team.logo_url ? (
+                  <img src={team.logo_url} alt={team.name} className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <Users className="w-8 h-8 text-slate-600" />
+                )}
+              </div>
+              <h3 className="font-bold mb-1">{team.name}</h3>
+              <p className="text-xs text-slate-500 mb-4">{team.location}</p>
+              <div className="flex items-center justify-center space-x-2 mb-4">
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded font-bold uppercase tracking-widest">
+                  {team.skill_level}
+                </span>
+              </div>
+              <div className="flex flex-col space-y-2 mb-6">
+                <div className="flex items-center justify-center text-[10px] text-slate-400">
+                  <Phone className="w-3 h-3 mr-1 text-emerald-500" />
+                  <span>Capt: {team.captain_phone}</span>
+                </div>
+                <div className="flex items-center justify-center text-[10px] text-slate-400">
+                  <Phone className="w-3 h-3 mr-1 text-cyan-500" />
+                  <span>Asst: {team.assistant_phone}</span>
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <a 
+                  href={`https://wa.me/${team.captain_phone}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 btn-secondary py-2 text-[10px] flex items-center justify-center space-x-1"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  <span>WhatsApp</span>
+                </a>
+                <button 
+                  onClick={() => {
+                    setNewMatch(prev => ({ ...prev, description: `Challenging ${team.name}!` }));
+                    setIsPosting(true);
+                  }}
+                  className="flex-1 btn-primary py-2 text-[10px]"
+                >
+                  Challenge
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Welcome Note Modal */}
       {showWelcomeNote && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">

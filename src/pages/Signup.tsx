@@ -16,6 +16,7 @@ const Signup: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<UserRole>(initialRole);
   const [loading, setLoading] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -44,8 +45,7 @@ const Signup: React.FC = () => {
 
       if (profileError) throw profileError;
 
-      toast.success('Account created! Please check your email for verification.');
-      navigate('/login');
+      setShowWelcome(true);
     } catch (error: any) {
       toast.error(error.message || 'Error signing up');
     } finally {
@@ -171,6 +171,28 @@ const Signup: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* Welcome Modal */}
+      {showWelcome && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"></div>
+          <div className="relative w-full max-w-md glass p-10 rounded-3xl neon-border text-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-6">
+              <Trophy className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-bold mb-4 neon-text">Welcome to the Squad!</h2>
+            <p className="text-slate-300 mb-8 leading-relaxed italic">
+              "You've successfully signed up! Your coding skills might be better than your finishing, but at least here you won't get a red card for a syntax error. Prepare to be thrashed on the pitch and mocked in the chat. Welcome to PitchFinder KE!"
+            </p>
+            <button 
+              onClick={() => navigate('/dashboard')}
+              className="btn-primary w-full py-4 text-lg font-bold"
+            >
+              Enter the Arena
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
