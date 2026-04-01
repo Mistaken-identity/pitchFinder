@@ -595,6 +595,7 @@ const FindOpponent: React.FC = () => {
                   handleAcceptChallenge(pendingMatchId);
                   setPendingMatchId(null);
                 }
+                navigate('/dashboard');
               }}
               className="btn-primary w-full py-4 text-lg font-bold"
             >
