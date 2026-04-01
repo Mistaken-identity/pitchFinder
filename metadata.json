@@ -1,0 +1,7 @@
+{
+  "name": "PitchFinder KE",
+  "description": "Find football pitches and connect with teams in Kenya. Discover, book, and play.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

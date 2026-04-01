@@ -1,0 +1,454 @@
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
+import { MatchRequest, Team, Pitch } from '../types';
+import { Trophy, Users, Calendar, MapPin, Clock, Plus, Loader2, ShieldCheck, MessageCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+
+const FindOpponent: React.FC = () => {
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  const [matchRequests, setMatchRequests] = useState<MatchRequest[]>([]);
+  const [myTeams, setMyTeams] = useState<Team[]>([]);
+  const [pitches, setPitches] = useState<Pitch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isPosting, setIsPosting] = useState(false);
+  const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
+
+  // New Match Request Form
+  const [newMatch, setNewMatch] = useState({
+    team_id: '',
+    pitch_id: '',
+    match_date: format(new Date(), 'yyyy-MM-dd'),
+    match_time: '18:00',
+    skill_level_required: 'intermediate',
+    description: ''
+  });
+
+  // New Team Form
+  const [newTeam, setNewTeam] = useState({
+    name: '',
+    description: '',
+    skill_level: 'intermediate',
+    location: ''
+  });
+
+  const fetchData = async () => {
+    try {
+      // Fetch open match requests
+      const { data: matchesData } = await supabase
+        .from('match_requests')
+        .select('*, team:teams(*), pitch:pitches(*)')
+        .eq('status', 'open')
+        .order('match_date', { ascending: true });
+      
+      setMatchRequests(matchesData || []);
+
+      // Fetch user's teams
+      if (user) {
+        const { data: teamsData } = await supabase
+          .from('teams')
+          .select('*')
+          .eq('captain_id', user.id);
+        
+        setMyTeams(teamsData || []);
+        if (teamsData && teamsData.length > 0) {
+          setNewMatch(prev => ({ ...prev, team_id: teamsData[0].id }));
+        }
+      }
+
+      // Fetch pitches for selection
+      const { data: pitchesData } = await supabase
+        .from('pitches')
+        .select('id, name');
+      
+      setPitches(pitchesData || []);
+    } catch (error) {
+      console.error('Error fetching matchmaking data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [user]);
+
+  const handleCreateTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('teams')
+        .insert({
+          ...newTeam,
+          captain_id: user.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success('Team created successfully!');
+      setIsCreatingTeam(false);
+      await fetchData();
+      
+      // If there was a pending match, accept it now
+      if (pendingMatchId) {
+        handleAcceptChallenge(pendingMatchId);
+        setPendingMatchId(null);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Error creating team');
+    }
+  };
+
+  const handlePostMatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('match_requests')
+        .insert({
+          ...newMatch,
+          status: 'open'
+        });
+
+      if (error) throw error;
+
+      toast.success('Match request posted!');
+      setIsPosting(false);
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Error posting match');
+    }
+  };
+
+  const handleAcceptChallenge = async (matchId: string) => {
+    if (!user) {
+      toast.error('Please login to accept challenges');
+      navigate('/login');
+      return;
+    }
+
+    if (myTeams.length === 0) {
+      toast.error('You need to create a team first!');
+      setPendingMatchId(matchId);
+      setIsCreatingTeam(true);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('match_requests')
+        .update({
+          status: 'matched',
+          opponent_team_id: myTeams[0].id
+        })
+        .eq('id', matchId);
+
+      if (error) throw error;
+
+      toast.success('Challenge accepted! Get ready for the match.');
+      fetchData();
+    } catch (error: any) {
+      toast.error(error.message || 'Error accepting challenge');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Find an <span className="neon-text">Opponent</span></h1>
+          <p className="text-slate-400">Challenge teams, host matches, and climb the ranks.</p>
+        </div>
+        <div className="flex space-x-4">
+          <button 
+            onClick={() => setIsCreatingTeam(true)}
+            className="btn-secondary flex items-center space-x-2"
+          >
+            <ShieldCheck className="w-5 h-5" />
+            <span>Create Team</span>
+          </button>
+          <button 
+            onClick={() => setIsPosting(true)}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Post Match</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Match Requests List */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-xl font-bold flex items-center space-x-2">
+            <Trophy className="w-5 h-5 text-emerald-400" />
+            <span>Open Challenges</span>
+          </h2>
+
+          {matchRequests.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {matchRequests.map((match) => (
+                <div key={match.id} className="glass p-6 rounded-2xl neon-border flex flex-col h-full">
+                  <div className="flex items-center space-x-4 mb-6">
+                    <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden border border-white/10">
+                      {match.team?.logo_url ? (
+                        <img src={match.team.logo_url} alt={match.team.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <Users className="w-8 h-8 text-slate-600" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">{match.team?.name}</h3>
+                      <div className="flex items-center text-xs text-slate-500">
+                        <span className="bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded uppercase font-bold tracking-widest">
+                          {match.team?.skill_level}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-8 flex-grow">
+                    <div className="flex items-center text-sm text-slate-400">
+                      <Calendar className="w-4 h-4 mr-3 text-emerald-500" />
+                      <span>{format(new Date(match.match_date), 'EEEE, MMM d, yyyy')}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-slate-400">
+                      <Clock className="w-4 h-4 mr-3 text-emerald-500" />
+                      <span>{match.match_time.slice(0, 5)}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-slate-400">
+                      <MapPin className="w-4 h-4 mr-3 text-emerald-500" />
+                      <span>{match.pitch?.name || 'Location TBD'}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t border-white/10 flex items-center justify-between">
+                    <button 
+                      onClick={() => handleAcceptChallenge(match.id)}
+                      className="btn-primary py-2 px-6 text-sm flex-grow mr-2"
+                    >
+                      Accept Challenge
+                    </button>
+                    <button className="glass p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-emerald-400 transition-colors">
+                      <MessageCircle className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 glass bg-white/5 rounded-3xl border border-dashed border-white/10">
+              <Trophy className="w-12 h-12 text-slate-700 mx-auto mb-4" />
+              <p className="text-slate-500">No open challenges at the moment.</p>
+              <button onClick={() => setIsPosting(true)} className="text-emerald-400 font-bold mt-2 hover:underline">
+                Be the first to post a match!
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar: My Teams & Info */}
+        <div className="space-y-8">
+          <div className="glass p-6 rounded-2xl neon-border">
+            <h2 className="text-xl font-bold mb-6 flex items-center space-x-2">
+              <ShieldCheck className="w-5 h-5 text-cyan-400" />
+              <span>My Teams</span>
+            </h2>
+            {myTeams.length > 0 ? (
+              <div className="space-y-4">
+                {myTeams.map(team => (
+                  <div key={team.id} className="glass bg-white/5 p-4 rounded-xl border border-white/5 flex items-center space-x-4">
+                    <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center border border-white/10">
+                      <Users className="w-5 h-5 text-slate-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-sm">{team.name}</h3>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">{team.skill_level}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-xs text-slate-500 mb-4">You haven't created a team yet.</p>
+                <button onClick={() => setIsCreatingTeam(true)} className="btn-secondary w-full text-xs">
+                  Create Your First Team
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="glass p-6 rounded-2xl neon-border">
+            <h2 className="text-xl font-bold mb-4">How it works</h2>
+            <ul className="space-y-4 text-sm text-slate-400">
+              <li className="flex items-start space-x-3">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex-shrink-0 flex items-center justify-center text-[10px] font-bold">1</div>
+                <span>Create a team and set your skill level.</span>
+              </li>
+              <li className="flex items-start space-x-3">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex-shrink-0 flex items-center justify-center text-[10px] font-bold">2</div>
+                <span>Post a match request with your preferred date and location.</span>
+              </li>
+              <li className="flex items-start space-x-3">
+                <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex-shrink-0 flex items-center justify-center text-[10px] font-bold">3</div>
+                <span>Wait for an opponent to accept or browse open challenges.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Post Match Modal */}
+      {isPosting && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsPosting(false)}></div>
+          <div className="relative w-full max-w-lg glass p-8 rounded-2xl neon-border">
+            <h2 className="text-2xl font-bold mb-6">Post Match Request</h2>
+            {myTeams.length > 0 ? (
+              <form onSubmit={handlePostMatch} className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Select Team</label>
+                  <select 
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    value={newMatch.team_id}
+                    onChange={(e) => setNewMatch({...newMatch, team_id: e.target.value})}
+                  >
+                    {myTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Match Date</label>
+                    <input 
+                      type="date" 
+                      required
+                      min={format(new Date(), 'yyyy-MM-dd')}
+                      className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                      value={newMatch.match_date}
+                      onChange={(e) => setNewMatch({...newMatch, match_date: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Match Time</label>
+                    <input 
+                      type="time" 
+                      required
+                      className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                      value={newMatch.match_time}
+                      onChange={(e) => setNewMatch({...newMatch, match_time: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Preferred Pitch (Optional)</label>
+                  <select 
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    value={newMatch.pitch_id}
+                    onChange={(e) => setNewMatch({...newMatch, pitch_id: e.target.value})}
+                  >
+                    <option value="">Any Location / TBD</option>
+                    {pitches.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex space-x-4 pt-4">
+                  <button type="button" onClick={() => setIsPosting(false)} className="flex-1 btn-secondary">Cancel</button>
+                  <button type="submit" className="flex-1 btn-primary">Post Request</button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-slate-400 mb-6">You need a team to post a match request.</p>
+                <button 
+                  onClick={() => {
+                    setIsPosting(false);
+                    setIsCreatingTeam(true);
+                  }}
+                  className="btn-primary"
+                >
+                  Create a Team Now
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Create Team Modal */}
+      {isCreatingTeam && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsCreatingTeam(false)}></div>
+          <div className="relative w-full max-w-lg glass p-8 rounded-2xl neon-border">
+            <h2 className="text-2xl font-bold mb-6">Create Your Team</h2>
+            <form onSubmit={handleCreateTeam} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Team Name</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  placeholder="e.g. Nairobi Stars"
+                  value={newTeam.name}
+                  onChange={(e) => setNewTeam({...newTeam, name: e.target.value})}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Skill Level</label>
+                <select 
+                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  value={newTeam.skill_level}
+                  onChange={(e) => setNewTeam({...newTeam, skill_level: e.target.value as any})}
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                  <option value="pro">Pro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Base Location</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  placeholder="e.g. Westlands, Nairobi"
+                  value={newTeam.location}
+                  onChange={(e) => setNewTeam({...newTeam, location: e.target.value})}
+                />
+              </div>
+
+              <div className="flex space-x-4 pt-4">
+                <button type="button" onClick={() => setIsCreatingTeam(false)} className="flex-1 btn-secondary">Cancel</button>
+                <button type="submit" className="flex-1 btn-primary">Create Team</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default FindOpponent;
