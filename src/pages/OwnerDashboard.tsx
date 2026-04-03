@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Pitch, Booking } from '../types';
-import { Plus, Edit, Trash2, Calendar, Clock, User, MapPin, Loader2, DollarSign, BarChart3, Image as ImageIcon, CheckCircle, XCircle, Search } from 'lucide-react';
+import { Plus, Edit, Trash2, Calendar, Clock, User, MapPin, Loader2, DollarSign, BarChart3, Image as ImageIcon, CheckCircle, XCircle, Search, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -35,6 +35,8 @@ const OwnerDashboard: React.FC = () => {
   const [isPaying, setIsPaying] = useState(false);
   const [paymentPhone, setPaymentPhone] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   // New Pitch Form State
   const [newPitch, setNewPitch] = useState({
@@ -112,7 +114,13 @@ const OwnerDashboard: React.FC = () => {
       
       try {
         setIsSubmitting(true);
-        const { image_url, ...pitchData } = newPitch;
+        
+        let imageUrl = newPitch.image_url;
+        if (selectedFile) {
+          imageUrl = await uploadImage(selectedFile);
+        }
+
+        const { image_url: _, ...pitchData } = newPitch;
         
         const { data: pitch, error: pitchError } = await supabase
           .from('pitches')
@@ -125,10 +133,10 @@ const OwnerDashboard: React.FC = () => {
 
         if (pitchError) throw pitchError;
 
-        if (image_url) {
+        if (imageUrl) {
           await supabase.from('pitch_images').insert({
             pitch_id: pitch.id,
-            image_url: image_url,
+            image_url: imageUrl,
             is_primary: true
           });
         }
@@ -147,6 +155,8 @@ const OwnerDashboard: React.FC = () => {
         setIsAddingPitch(false);
         setIsPaying(false);
         setPaymentStatus('idle');
+        setSelectedFile(null);
+        setImagePreview(null);
         setNewPitch({
           name: '',
           location_name: '',
@@ -176,6 +186,38 @@ const OwnerDashboard: React.FC = () => {
         longitude: e.latLng.lng()
       });
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${user?.id}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('pitches')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from('pitches')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: 'confirmed' | 'cancelled') => {
@@ -441,18 +483,49 @@ const OwnerDashboard: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Main Image URL</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Pitch Image</label>
                     <div className="relative">
-                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
                       <input 
-                        type="url" 
-                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
-                        placeholder="https://images.unsplash.com/..."
-                        value={newPitch.image_url}
-                        onChange={(e) => setNewPitch({...newPitch, image_url: e.target.value})}
+                        type="file" 
+                        accept="image/*"
+                        className="hidden"
+                        id="pitch-image"
+                        onChange={handleFileChange}
                       />
+                      <label 
+                        htmlFor="pitch-image"
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
+                      >
+                        {selectedFile ? (
+                          <div className="flex items-center space-x-2">
+                            <ImageIcon className="w-4 h-4 text-emerald-400" />
+                            <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2">
+                            <Upload className="w-4 h-4 text-slate-500" />
+                            <span className="text-sm text-slate-500">Upload Facility Image</span>
+                          </div>
+                        )}
+                      </label>
                     </div>
                   </div>
+
+                  {imagePreview && (
+                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/10">
+                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          setSelectedFile(null);
+                          setImagePreview(null);
+                        }}
+                        className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors"
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>

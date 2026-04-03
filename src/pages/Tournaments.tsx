@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Tournament } from '../types';
-import { Trophy, Calendar, MapPin, DollarSign, Loader2, Search, Plus, X } from 'lucide-react';
+import { Trophy, Calendar, MapPin, DollarSign, Loader2, Search, Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
@@ -13,6 +13,10 @@ const Tournaments: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
   const [newTournament, setNewTournament] = useState({
     title: '',
     description: '',
@@ -23,6 +27,38 @@ const Tournaments: React.FC = () => {
     entry_fee: 0,
     image_url: ''
   });
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${user?.id}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('tournaments')
+      .upload(filePath, file);
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const { data } = supabase.storage
+      .from('tournaments')
+      .getPublicUrl(filePath);
+
+    return data.publicUrl;
+  };
 
   const fetchTournaments = async () => {
     try {
@@ -52,10 +88,19 @@ const Tournaments: React.FC = () => {
     }
 
     try {
+      setIsSubmitting(true);
+      
+      let imageUrl = newTournament.image_url;
+
+      if (selectedFile) {
+        imageUrl = await uploadImage(selectedFile);
+      }
+
       const { error } = await supabase
         .from('tournaments')
         .insert({
           ...newTournament,
+          image_url: imageUrl,
           owner_id: user.id
         });
 
@@ -63,9 +108,13 @@ const Tournaments: React.FC = () => {
 
       toast.success('Tournament created successfully!');
       setIsCreating(false);
+      setSelectedFile(null);
+      setImagePreview(null);
       fetchTournaments();
     } catch (error: any) {
       toast.error(error.message || 'Error creating tournament');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -206,16 +255,50 @@ const Tournaments: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Image URL (Optional)</label>
-                  <input 
-                    type="url" 
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                    placeholder="https://..."
-                    value={newTournament.image_url}
-                    onChange={(e) => setNewTournament({...newTournament, image_url: e.target.value})}
-                  />
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Tournament Poster</label>
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      accept="image/*"
+                      className="hidden"
+                      id="tournament-image"
+                      onChange={handleFileChange}
+                    />
+                    <label 
+                      htmlFor="tournament-image"
+                      className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
+                    >
+                      {selectedFile ? (
+                        <div className="flex items-center space-x-2">
+                          <ImageIcon className="w-4 h-4 text-emerald-400" />
+                          <span className="text-sm truncate max-w-[150px]">{selectedFile.name}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center space-x-2">
+                          <Upload className="w-4 h-4 text-slate-500" />
+                          <span className="text-sm text-slate-500">Upload Poster</span>
+                        </div>
+                      )}
+                    </label>
+                  </div>
                 </div>
               </div>
+
+              {imagePreview && (
+                <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10">
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setImagePreview(null);
+                    }}
+                    className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -265,7 +348,20 @@ const Tournaments: React.FC = () => {
 
               <div className="flex space-x-4 pt-4">
                 <button type="button" onClick={() => setIsCreating(false)} className="flex-1 btn-secondary">Cancel</button>
-                <button type="submit" className="flex-1 btn-primary">Create Tournament</button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className="flex-1 btn-primary flex items-center justify-center space-x-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <span>Create Tournament</span>
+                  )}
+                </button>
               </div>
             </form>
           </div>
