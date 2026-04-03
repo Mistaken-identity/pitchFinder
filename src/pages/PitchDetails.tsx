@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
-import { Pitch, Review, Booking } from '../types';
-import { MapPin, Star, Clock, Phone, MessageCircle, Calendar, Users, Loader2, ChevronLeft, ChevronRight, ShieldCheck, Heart, Share2, DollarSign, CheckCircle, XCircle } from 'lucide-react';
+import { Pitch, Review, Booking, Profile } from '../types';
+import { MapPin, Star, Clock, Phone, MessageCircle, Calendar, Users, Loader2, ChevronLeft, ChevronRight, ShieldCheck, Heart, Share2, DollarSign, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -13,8 +13,9 @@ const PitchDetails: React.FC = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   
-  const [pitch, setPitch] = useState<Pitch | null>(null);
+  const [pitch, setPitch] = useState<Pitch & { owner?: Profile } | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [otherPitches, setOtherPitches] = useState<Pitch[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
@@ -35,12 +36,23 @@ const PitchDetails: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('pitches')
-        .select('*, images:pitch_images(*)')
+        .select('*, images:pitch_images(*), owner:profiles(*)')
         .eq('id', id)
         .single();
       
       if (error) throw error;
       setPitch(data);
+
+      // Fetch other pitches by the same owner
+      if (data.owner_id) {
+        const { data: othersData } = await supabase
+          .from('pitches')
+          .select('*, images:pitch_images(*)')
+          .eq('owner_id', data.owner_id)
+          .neq('id', id)
+          .limit(3);
+        setOtherPitches(othersData || []);
+      }
 
       if (user) {
         const { data: favData } = await supabase
@@ -317,6 +329,82 @@ const PitchDetails: React.FC = () => {
             <p className="text-slate-400 leading-relaxed mb-8">
               {pitch.description || "No description provided for this pitch. It's one of the best facilities in the area with high-quality turf and great lighting for night matches."}
             </p>
+
+            {/* Owner Section */}
+            <div className="border-t border-white/10 pt-8 mb-8">
+              <h3 className="text-xl font-bold mb-6">About the Owner</h3>
+              <Link 
+                to={`/owner/${pitch.owner_id}`}
+                className="flex items-center justify-between glass p-6 rounded-2xl border border-white/5 hover:border-emerald-500/30 transition-all group"
+              >
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-emerald-500/30 group-hover:border-emerald-500 transition-colors">
+                    {pitch.owner?.avatar_url ? (
+                      <img src={pitch.owner.avatar_url} alt={pitch.owner.full_name || ''} className="w-full h-full object-cover" />
+                    ) : (
+                      <Users className="w-8 h-8 text-slate-500" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold group-hover:text-emerald-400 transition-colors">{pitch.owner?.full_name || 'Pitch Owner'}</h4>
+                    <p className="text-sm text-slate-400">Verified Pitch Provider</p>
+                    <div className="flex items-center mt-1 text-xs text-emerald-400">
+                      <ShieldCheck className="w-3 h-3 mr-1" />
+                      <span>Identity Verified</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end">
+                  <div className="text-xs text-slate-500 mb-1 uppercase tracking-widest">Member Since</div>
+                  <div className="text-sm font-bold">{pitch.owner?.created_at ? format(new Date(pitch.owner.created_at), 'MMM yyyy') : 'N/A'}</div>
+                  <div className="mt-2 text-emerald-400 text-xs font-bold flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    View Profile <ExternalLink className="w-3 h-3 ml-1" />
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* Other Pitches by Owner */}
+            {otherPitches.length > 0 && (
+              <div className="border-t border-white/10 pt-8 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold">Other Pitches by {pitch.owner?.full_name?.split(' ')[0] || 'Owner'}</h3>
+                  <Link to={`/owner/${pitch.owner_id}`} className="text-emerald-400 text-sm hover:underline flex items-center">
+                    View All <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {otherPitches.map((other) => (
+                    <Link 
+                      key={other.id} 
+                      to={`/pitch/${other.id}`}
+                      className="glass p-4 rounded-xl border border-white/5 hover:border-emerald-500/30 transition-all group"
+                    >
+                      <div className="flex space-x-4">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden shrink-0">
+                          <img 
+                            src={other.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=200'} 
+                            alt={other.name} 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                            referrerPolicy="no-referrer"
+                          />
+                        </div>
+                        <div className="flex flex-col justify-center">
+                          <h4 className="font-bold group-hover:text-emerald-400 transition-colors">{other.name}</h4>
+                          <div className="flex items-center text-xs text-slate-400 mt-1">
+                            <MapPin className="w-3 h-3 mr-1 text-emerald-500" />
+                            <span className="truncate max-w-[150px]">{other.location_name}</span>
+                          </div>
+                          <div className="mt-2 text-emerald-400 font-bold text-sm">
+                            KSH {other.price_per_hour}/hr
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-4">
               {pitch.whatsapp_number && (

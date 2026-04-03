@@ -9,8 +9,9 @@ import PitchDetails from './pages/PitchDetails';
 import Dashboard from './pages/Dashboard';
 import OwnerDashboard from './pages/OwnerDashboard';
 import FindOpponent from './pages/FindOpponent';
-import Profile from './pages/Profile';
+import ProfilePage from './pages/Profile';
 import Tournaments from './pages/Tournaments';
+import OwnerProfile from './pages/OwnerProfile';
 
 export default function App() {
   return (
@@ -23,10 +24,11 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/pitch/:id" element={<PitchDetails />} />
+            <Route path="/owner/:id" element={<OwnerProfile />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/owner-dashboard" element={<OwnerDashboard />} />
             <Route path="/find-opponent" element={<FindOpponent />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/tournaments" element={<Tournaments />} />
           </Routes>
         </Layout>
