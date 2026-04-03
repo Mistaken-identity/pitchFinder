@@ -611,28 +611,63 @@ const PitchDetails: React.FC = () => {
       {showConfirmation && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-slate-950/95 backdrop-blur-xl"></div>
-          <div className="relative w-full max-w-lg glass p-10 rounded-3xl neon-border text-center">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-8">
-              <ShieldCheck className="w-10 h-10" />
-            </div>
-            <h2 className="text-3xl font-bold mb-4">Booking Confirmed!</h2>
-            <p className="text-slate-300 mb-8 leading-relaxed">
-              Your booking for <span className="text-white font-bold">{pitch.name}</span> on <span className="text-white font-bold">{format(new Date(bookingDate), 'MMMM d')}</span> is now active.
-            </p>
+          <div className="relative w-full max-w-lg glass p-10 rounded-3xl neon-border text-center overflow-hidden">
+            {/* Success Animation Background */}
+            <div className="absolute -top-24 -left-24 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
             
-            <div className="glass bg-white/5 p-6 rounded-2xl mb-8 text-left border border-white/10">
-              <h4 className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-3">Anti-Scam Protocol</h4>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                To ensure a safe experience, both you and the pitch owner must be present at the facility to finalize the match. Please show your digital receipt to the owner upon arrival.
-              </p>
-            </div>
+            <div className="relative z-10">
+              <div className="w-24 h-24 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-8 neon-border border-emerald-500/50">
+                <CheckCircle className="w-12 h-12" />
+              </div>
+              
+              <h2 className="text-4xl font-black mb-2 tracking-tight">BOOKING <span className="neon-text">SECURED!</span></h2>
+              <p className="text-slate-400 mb-8 font-medium">Your slot is locked and loaded. Get ready to play!</p>
+              
+              <div className="glass bg-white/5 p-8 rounded-2xl mb-8 text-left border border-white/10 space-y-4">
+                <div className="flex justify-between items-center pb-4 border-b border-white/5">
+                  <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Facility</span>
+                  <span className="text-sm font-bold text-white">{pitch.name}</span>
+                </div>
+                <div className="flex justify-between items-center pb-4 border-b border-white/5">
+                  <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Date & Time</span>
+                  <span className="text-sm font-bold text-emerald-400">
+                    {format(new Date(bookingDate), 'MMM d, yyyy')} @ {startTime}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pb-4 border-b border-white/5">
+                  <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Duration</span>
+                  <span className="text-sm font-bold text-white">{duration} Hour{duration > 1 ? 's' : ''}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">Total Paid</span>
+                  <span className="text-lg font-black text-emerald-400">KSH {(pitch.price_per_hour * duration).toLocaleString()}</span>
+                </div>
+              </div>
+              
+              <div className="glass bg-emerald-500/10 p-4 rounded-xl mb-8 border border-emerald-500/20 flex items-start space-x-3 text-left">
+                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-emerald-100/70 leading-relaxed">
+                  <span className="font-bold text-emerald-400 block mb-1">Anti-Scam Protocol Active</span>
+                  Your payment is held securely. Show your digital receipt in the dashboard to the owner upon arrival to finalize the match.
+                </p>
+              </div>
 
-            <button 
-              onClick={() => navigate('/dashboard')}
-              className="btn-primary w-full py-4 text-lg font-bold"
-            >
-              Go to Dashboard
-            </button>
+              <div className="flex flex-col space-y-4">
+                <button 
+                  onClick={() => navigate('/dashboard')}
+                  className="btn-primary w-full py-5 text-lg font-black tracking-widest uppercase shadow-lg shadow-emerald-500/20"
+                >
+                  Go to My Dashboard
+                </button>
+                <button 
+                  onClick={() => setShowConfirmation(false)}
+                  className="text-slate-500 text-sm hover:text-white transition-colors font-bold"
+                >
+                  Close & Stay Here
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
