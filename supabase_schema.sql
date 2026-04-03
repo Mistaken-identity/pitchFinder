@@ -157,6 +157,7 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 -- Notifications Policies
 CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Authenticated users can insert notifications" ON notifications FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
 -- Tournaments Policies
 CREATE POLICY "Tournaments are viewable by everyone" ON tournaments FOR SELECT USING (true);
@@ -166,12 +167,14 @@ CREATE POLICY "Owners can delete own tournaments" ON tournaments FOR DELETE USIN
 
 -- Payments Policies
 CREATE POLICY "Users can view own payments" ON payments FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own payments" ON payments FOR INSERT WITH CHECK (auth.uid() = user_id);
 
 -- Favorites: Users can manage their own favorites
 CREATE POLICY "Users can view own favorites" ON favorites FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can manage own favorites" ON favorites FOR ALL USING (auth.uid() = user_id);
 -- Profiles: Users can read all profiles, but only update their own
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Pitches: Everyone can view, only owners can insert/update/delete

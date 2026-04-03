@@ -2,7 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { MapPin, Users, Calendar, ShieldCheck, ArrowRight, Trophy, Code } from 'lucide-react';
+import { 
+  MapPin, Users, Calendar, ShieldCheck, ArrowRight, Trophy, Code, 
+  Zap, Target, MessageSquare, Star, TrendingUp, CheckCircle2 
+} from 'lucide-react';
 
 const HUMOR_QUOTES = [
   "In football, the ball is round. In coding, the bugs are everywhere. Both will ruin your weekend.",
@@ -12,6 +15,34 @@ const HUMOR_QUOTES = [
   "Footballers dive for penalties. Developers dive into stack overflow. Both are looking for a quick fix.",
   "Referees use VAR. Developers use console.log. Both still get it wrong half the time.",
   "The only thing more stressful than a penalty shootout is a production deployment on a Friday."
+];
+
+const STATS = [
+  { label: 'Pitches Listed', value: '150+', icon: MapPin },
+  { label: 'Active Teams', value: '450+', icon: Users },
+  { label: 'Matches Played', value: '1,200+', icon: Trophy },
+  { label: 'Happy Players', value: '5,000+', icon: Star },
+];
+
+const TESTIMONIALS = [
+  {
+    name: "Kevin 'The Wall' Otieno",
+    role: "Captain, Eastlands United",
+    text: "Finally, an app that doesn't crash as often as my striker. Found a pitch in 2 minutes and got thrashed 5-0. 10/10 experience.",
+    avatar: "https://i.pravatar.cc/150?u=kevin"
+  },
+  {
+    name: "Sarah Wanjiku",
+    role: "Owner, Westlands Arena",
+    text: "Managing bookings used to be a nightmare of WhatsApp messages. Now it's all automated. More time for me to shout at the refs.",
+    avatar: "https://i.pravatar.cc/150?u=sarah"
+  },
+  {
+    name: "Antony 'The Dev' Emong'oluk",
+    role: "Founder",
+    text: "I built this because I was tired of calling 10 people just to find a pitch. Now I can find a pitch and still lose the game.",
+    avatar: "https://i.pravatar.cc/150?u=antony"
+  }
 ];
 
 const Home: React.FC = () => {
@@ -25,87 +56,229 @@ const Home: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col bg-slate-950 text-slate-50 overflow-x-hidden">
       {/* Hero Section */}
-      <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img 
+          <motion.img 
+            initial={{ scale: 1.1, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.3 }}
+            transition={{ duration: 1.5 }}
             src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=2000" 
             alt="Football Pitch" 
-            className="w-full h-full object-cover opacity-30"
+            className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-slate-950 via-transparent to-slate-950"></div>
+          
+          {/* Animated Background Elements */}
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] animate-pulse delay-700"></div>
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-6">
-              FIND YOUR <span className="neon-text">PERFECT PITCH</span> <br />
-              IN KENYA
+            <div className="inline-flex items-center space-x-2 bg-white/5 border border-white/10 px-4 py-2 rounded-full mb-8 backdrop-blur-md">
+              <Zap className="w-4 h-4 text-emerald-400" />
+              <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Kenya's #1 Football Platform</span>
+            </div>
+            
+            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-none">
+              DOMINATE THE <br />
+              <span className="neon-text italic">PITCH</span>
             </h1>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-              The ultimate platform for amateur football in Kenya. Discover pitches, book slots, and find teams to play against.
+            
+            <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed">
+              Stop chasing owners. Start chasing goals. The ultimate platform to <span className="text-emerald-400 font-bold">Discover</span>, <span className="text-cyan-400 font-bold">Book</span>, and <span className="text-purple-400 font-bold">Conquer</span> Kenyan football.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/discover" className="btn-primary flex items-center space-x-2 w-full sm:w-auto">
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Link to="/discover" className="btn-primary flex items-center space-x-3 px-10 py-5 text-lg group">
                 <span>Start Playing</span>
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link to="/find-opponent" className="btn-secondary flex items-center space-x-2 w-full sm:w-auto">
+              <Link to="/find-opponent" className="btn-secondary flex items-center space-x-3 px-10 py-5 text-lg">
                 <Trophy className="w-5 h-5 text-emerald-400" />
                 <span>Find an Opponent</span>
               </Link>
             </div>
           </motion.div>
         </div>
+
+        {/* Scroll Indicator */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center space-y-2"
+        >
+          <span className="text-[10px] uppercase tracking-[0.3em] text-slate-500">Scroll to Explore</span>
+          <div className="w-px h-12 bg-gradient-to-b from-emerald-500 to-transparent"></div>
+        </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 bg-slate-900/50">
+      {/* Stats Section */}
+      <section className="py-20 relative z-10">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose PitchFinder?</h2>
-            <div className="w-20 h-1 bg-emerald-500 mx-auto rounded-full"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {STATS.map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="text-center p-6 glass rounded-2xl border border-white/5"
+              >
+                <stat.icon className="w-6 h-6 text-emerald-500 mx-auto mb-4" />
+                <div className="text-3xl md:text-4xl font-black mb-1 neon-text">{stat.value}</div>
+                <div className="text-xs uppercase tracking-widest text-slate-500 font-bold">{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section className="py-32 bg-slate-900/30">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-20 gap-8">
+            <div className="max-w-2xl">
+              <h2 className="text-4xl md:text-6xl font-black mb-6 leading-tight">
+                THREE STEPS TO <br />
+                <span className="text-emerald-500">GLORY</span>
+              </h2>
+              <p className="text-xl text-slate-400">We've simplified the beautiful game. No more endless calls, no more "is the pitch free?" drama.</p>
+            </div>
+            <div className="hidden md:block">
+              <div className="flex items-center space-x-2 text-emerald-500 font-bold italic">
+                <TrendingUp className="w-6 h-6" />
+                <span>99% Success Rate in Finding Matches</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {[
+              {
+                step: '01',
+                title: 'Find Your Turf',
+                desc: 'Browse through the best astro-turfs and grass pitches in Nairobi and beyond. Filter by your budget and location.',
+                icon: MapPin,
+                color: 'from-emerald-500/20 to-transparent'
+              },
+              {
+                step: '02',
+                title: 'Secure the Slot',
+                desc: 'Pay instantly via M-Pesa. Your booking is confirmed the moment the transaction hits. No double bookings, ever.',
+                icon: Calendar,
+                color: 'from-cyan-500/20 to-transparent'
+              },
+              {
+                step: '03',
+                title: 'Show Up & Play',
+                desc: 'Get your squad together, show up at the facility, and let your football do the talking. (Or the shouting).',
+                icon: Target,
+                color: 'from-purple-500/20 to-transparent'
+              }
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.2 }}
+                className={`relative p-10 rounded-3xl border border-white/10 bg-gradient-to-br ${item.color} group hover:border-emerald-500/50 transition-all`}
+              >
+                <div className="text-6xl font-black text-white/5 absolute top-4 right-8 group-hover:text-emerald-500/10 transition-colors">{item.step}</div>
+                <div className="w-14 h-14 rounded-2xl bg-slate-950 flex items-center justify-center mb-8 border border-white/10">
+                  <item.icon className="w-7 h-7 text-emerald-400" />
+                </div>
+                <h3 className="text-2xl font-bold mb-4">{item.title}</h3>
+                <p className="text-slate-400 leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Pitch Section */}
+      <section className="py-32 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="glass rounded-[40px] overflow-hidden border border-white/10 flex flex-col lg:flex-row">
+            <div className="lg:w-1/2 relative h-80 lg:h-auto">
+              <img 
+                src="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=1200" 
+                alt="Featured Pitch" 
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute top-6 left-6 bg-emerald-500 text-slate-950 px-4 py-1 rounded-full text-xs font-black uppercase tracking-tighter shadow-xl">
+                Pitch of the Month
+              </div>
+            </div>
+            <div className="lg:w-1/2 p-12 lg:p-20 flex flex-col justify-center">
+              <div className="flex items-center space-x-2 mb-6">
+                <div className="flex text-yellow-400">
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
+                </div>
+                <span className="text-slate-500 text-sm">(120+ Reviews)</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
+                WESTLANDS <br />
+                <span className="neon-text">ARENA 5.0</span>
+              </h2>
+              <p className="text-xl text-slate-400 mb-10 leading-relaxed">
+                Experience the finest 5-a-side astro-turf in Nairobi. High-intensity lighting, professional-grade surface, and a vibe that makes you feel like you're at the Emirates.
+              </p>
+              <div className="space-y-4 mb-12">
+                {['Pro-Grade AstroTurf', 'Night Lighting', 'Changing Rooms', 'Ample Parking'].map((feature, i) => (
+                  <div key={i} className="flex items-center space-x-3 text-slate-300">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+              <Link to="/discover" className="btn-primary inline-flex items-center space-x-3 self-start px-8">
+                <span>Book This Pitch</span>
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-32 bg-slate-900/20">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-6xl font-black mb-6">WHAT THE <br /><span className="text-cyan-400">STREETS</span> ARE SAYING</h2>
+            <p className="text-xl text-slate-400 max-w-2xl mx-auto italic">Real feedback from real players who probably spend more time on this app than at work.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {
-                title: 'Easy Discovery',
-                desc: 'Find pitches near you with our interactive map. Filter by price, rating, and availability.',
-                icon: MapPin,
-                color: 'text-emerald-400'
-              },
-              {
-                title: 'Instant Booking',
-                desc: 'Book your preferred slot in seconds or contact pitch owners directly via WhatsApp.',
-                icon: Calendar,
-                color: 'text-cyan-400'
-              },
-              {
-                title: 'Team Matchmaking',
-                desc: 'Looking for a challenge? Post a match request and connect with other teams in your area.',
-                icon: Users,
-                color: 'text-purple-400'
-              }
-            ].map((feature, i) => (
+            {TESTIMONIALS.map((t, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
                 transition={{ delay: i * 0.2 }}
-                className="glass p-8 rounded-2xl neon-border hover:bg-white/10 transition-all duration-300"
+                className="glass p-10 rounded-3xl border border-white/5 relative"
               >
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-6 bg-white/5 ${feature.color}`}>
-                  <feature.icon className="w-6 h-6" />
+                <MessageSquare className="w-10 h-10 text-emerald-500/20 absolute top-8 right-8" />
+                <p className="text-lg text-slate-300 mb-8 leading-relaxed italic">"{t.text}"</p>
+                <div className="flex items-center space-x-4">
+                  <img src={t.avatar} alt={t.name} className="w-12 h-12 rounded-full border-2 border-emerald-500/50" />
+                  <div>
+                    <div className="font-bold">{t.name}</div>
+                    <div className="text-xs text-slate-500">{t.role}</div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold mb-4">{feature.title}</h3>
-                <p className="text-slate-400 leading-relaxed">{feature.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -113,49 +286,86 @@ const Home: React.FC = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="glass p-12 rounded-3xl text-center relative overflow-hidden neon-border">
+      <section className="py-32 relative overflow-hidden">
+        <div className="absolute inset-0 bg-emerald-500/5 -skew-y-6 origin-right"></div>
+        <div className="max-w-5xl mx-auto px-4 relative z-10">
+          <div className="glass p-16 md:p-24 rounded-[50px] text-center relative overflow-hidden neon-border">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">Are you a Pitch Owner?</h2>
-            <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-              List your facility on PitchFinder KE and reach thousands of players across Nairobi. Manage bookings and grow your business.
+            <h2 className="text-4xl md:text-6xl font-black mb-8 leading-tight">ARE YOU A <br /> PITCH OWNER?</h2>
+            <p className="text-xl md:text-2xl text-slate-400 mb-12 max-w-2xl mx-auto leading-relaxed">
+              Stop losing money on empty slots. List your facility on PitchFinder KE and reach thousands of players across Kenya.
             </p>
-            <Link to="/signup?role=owner" className="btn-primary inline-flex items-center space-x-2">
-              <span>Register Your Pitch</span>
-              <ShieldCheck className="w-5 h-5" />
-            </Link>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Link to="/signup?role=owner" className="btn-primary px-10 py-5 text-lg flex items-center space-x-3">
+                <span>Register Your Pitch</span>
+                <ShieldCheck className="w-6 h-6" />
+              </Link>
+              <a href="https://wa.me/254700000000" className="btn-secondary px-10 py-5 text-lg flex items-center space-x-3">
+                <MessageSquare className="w-6 h-6" />
+                <span>Chat with Sales</span>
+              </a>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Animated Humor & Founder Recognition */}
-      <section className="py-16 border-t border-white/5">
+      <section className="py-24 border-t border-white/5 bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="mb-12 h-24 flex items-center justify-center">
+          <div className="mb-20 h-32 flex items-center justify-center">
             <AnimatePresence mode="wait">
               <motion.div
                 key={quoteIndex}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.05 }}
                 transition={{ duration: 0.5 }}
-                className="flex items-center space-x-4 text-slate-400 italic text-lg"
+                className="flex flex-col items-center space-y-6 max-w-3xl"
               >
-                <Code className="w-6 h-6 text-emerald-500 shrink-0" />
-                <p>"{HUMOR_QUOTES[quoteIndex]}"</p>
-                <Trophy className="w-6 h-6 text-emerald-500 shrink-0" />
+                <div className="flex space-x-4">
+                  <Code className="w-8 h-8 text-emerald-500 shrink-0" />
+                  <Trophy className="w-8 h-8 text-emerald-500 shrink-0" />
+                </div>
+                <p className="text-2xl md:text-3xl font-bold text-slate-300 italic leading-tight">"{HUMOR_QUOTES[quoteIndex]}"</p>
               </motion.div>
             </AnimatePresence>
           </div>
           
-          <div className="pt-8 border-t border-white/5">
-            <p className="text-slate-500 text-sm uppercase tracking-[0.3em] mb-2">Developed by</p>
-            <h4 className="text-2xl font-bold neon-text">Antony Emong'oluk</h4>
-            <p className="text-xs text-slate-600 mt-2">Founder & Lead Architect</p>
+          <div className="pt-16 border-t border-white/5 flex flex-col items-center">
+            <div className="w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-8">
+              <Code className="w-10 h-10 text-emerald-400" />
+            </div>
+            <p className="text-slate-500 text-sm uppercase tracking-[0.4em] mb-4 font-black">Architected & Founded by</p>
+            <h4 className="text-4xl md:text-5xl font-black neon-text mb-4">Antony Emong'oluk</h4>
+            <p className="text-slate-400 max-w-xl mx-auto leading-relaxed">
+              "I built PitchFinder KE to bridge the gap between technology and the beautiful game. Whether you're a pro or a Sunday league legend, this platform is for you."
+            </p>
+            <div className="flex space-x-6 mt-10">
+              <div className="text-center">
+                <div className="text-emerald-400 font-bold">10k+</div>
+                <div className="text-[10px] uppercase text-slate-600 tracking-widest">Lines of Code</div>
+              </div>
+              <div className="w-px h-10 bg-white/10"></div>
+              <div className="text-center">
+                <div className="text-emerald-400 font-bold">0</div>
+                <div className="text-[10px] uppercase text-slate-600 tracking-widest">Goals Scored</div>
+              </div>
+              <div className="w-px h-10 bg-white/10"></div>
+              <div className="text-center">
+                <div className="text-emerald-400 font-bold">∞</div>
+                <div className="text-[10px] uppercase text-slate-600 tracking-widest">Passion</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Footer-ish Section */}
+      <footer className="py-12 border-t border-white/5 text-center text-slate-600 text-xs">
+        <div className="max-w-7xl mx-auto px-4">
+          <p>© 2026 PitchFinder KE. All rights reserved. No refunds for bad finishing.</p>
+        </div>
+      </footer>
     </div>
   );
 };
