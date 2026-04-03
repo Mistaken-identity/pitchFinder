@@ -294,72 +294,90 @@ const OwnerDashboard: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           <h2 className="text-xl font-bold flex items-center space-x-2">
             <Clock className="w-5 h-5 text-cyan-400" />
-            <span>Recent Booking Requests</span>
+            <span>Incoming Booking Requests</span>
           </h2>
           <div className="glass rounded-2xl overflow-hidden border border-white/10">
-            <table className="w-full text-left">
-              <thead className="glass bg-white/5 text-xs uppercase tracking-widest text-slate-500">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Pitch / Team</th>
-                  <th className="px-6 py-4 font-medium">Date & Time</th>
-                  <th className="px-6 py-4 font-medium">Amount</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {bookings.length > 0 ? (
-                  bookings.map(booking => (
-                    <tr key={booking.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-sm">{booking.pitch?.name}</p>
-                        <p className="text-xs text-slate-500">{booking.team_name || booking.user?.full_name}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm">{format(new Date(booking.booking_date), 'MMM d, yyyy')}</p>
-                        <p className="text-xs text-slate-500">{booking.start_time.slice(0, 5)}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-bold">KSH {booking.total_price}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
-                          booking.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 
-                          booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 
-                          'bg-yellow-500/20 text-yellow-400'
-                        }`}>
-                          {booking.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        {booking.status === 'pending' && (
-                          <div className="flex space-x-2">
-                            <button 
-                              onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
-                              className="p-1.5 glass hover:bg-emerald-500/20 rounded-lg text-emerald-400 transition-colors"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </button>
-                            <button 
-                              onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
-                              className="p-1.5 glass hover:bg-red-500/20 rounded-lg text-red-400 transition-colors"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          </div>
-                        )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[800px]">
+                <thead className="glass bg-white/5 text-xs uppercase tracking-widest text-slate-500">
+                  <tr>
+                    <th className="px-6 py-4 font-medium">Pitch Name</th>
+                    <th className="px-6 py-4 font-medium">Team Name</th>
+                    <th className="px-6 py-4 font-medium">Date</th>
+                    <th className="px-6 py-4 font-medium">Time</th>
+                    <th className="px-6 py-4 font-medium">Total Price</th>
+                    <th className="px-6 py-4 font-medium">Status</th>
+                    <th className="px-6 py-4 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {bookings.length > 0 ? (
+                    bookings.map(booking => (
+                      <tr key={booking.id} className="hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-sm">{booking.pitch?.name}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm text-slate-300">{booking.team_name || booking.user?.full_name || 'Anonymous'}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm">{format(new Date(booking.booking_date), 'MMM d, yyyy')}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm">{booking.start_time.slice(0, 5)}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-bold text-emerald-400">KSH {booking.total_price.toLocaleString()}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                            booking.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 
+                            booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 
+                            'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            {booking.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {booking.status === 'pending' || booking.status === 'confirmed' ? (
+                            <div className="flex space-x-2">
+                              {booking.status === 'pending' && (
+                                <button 
+                                  onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
+                                  className="p-2 glass hover:bg-emerald-500/20 rounded-lg text-emerald-400 transition-all flex items-center space-x-1 group"
+                                  title="Confirm Booking"
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span className="text-[10px] font-bold hidden group-hover:inline">Confirm</span>
+                                </button>
+                              )}
+                              {booking.status !== 'cancelled' && (
+                                <button 
+                                  onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                                  className="p-2 glass hover:bg-red-500/20 rounded-lg text-red-400 transition-all flex items-center space-x-1 group"
+                                  title="Cancel Booking"
+                                >
+                                  <XCircle className="w-4 h-4" />
+                                  <span className="text-[10px] font-bold hidden group-hover:inline">Cancel</span>
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-600 italic">No actions</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-10 text-center text-slate-500">
+                        No booking requests yet.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-slate-500">
-                      No booking requests yet.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </div>
