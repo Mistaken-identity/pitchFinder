@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Pitch, Review, Booking, Profile } from '../types';
 import { MapPin, Star, Clock, Phone, MessageCircle, Calendar, Users, Loader2, ChevronLeft, ChevronRight, ShieldCheck, Heart, Share2, DollarSign, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isBefore, startOfToday } from 'date-fns';
 
 const PitchDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +31,24 @@ const PitchDetails: React.FC = () => {
   const [startTime, setStartTime] = useState('18:00');
   const [duration, setDuration] = useState(1);
   const [teamName, setTeamName] = useState('');
+  const [pitchBookings, setPitchBookings] = useState<Booking[]>([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const fetchPitchBookings = async () => {
+    if (!id) return;
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('pitch_id', id)
+        .eq('status', 'confirmed');
+      
+      if (error) throw error;
+      setPitchBookings(data || []);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
+  };
 
   const fetchPitchDetails = async () => {
     try {
@@ -82,6 +100,7 @@ const PitchDetails: React.FC = () => {
 
   useEffect(() => {
     fetchPitchDetails();
+    fetchPitchBookings();
   }, [id, user]);
 
   const toggleFavorite = async () => {
@@ -201,6 +220,7 @@ const PitchDetails: React.FC = () => {
         setShowConfirmation(true);
         setIsPaying(false);
         setPaymentStatus('idle');
+        fetchPitchBookings(); // Refresh calendar availability
       } catch (error: any) {
         toast.error(error.message || 'Error creating booking');
         setPaymentStatus('failed');
@@ -268,7 +288,14 @@ const PitchDetails: React.FC = () => {
           <div className="glass p-6 md:p-8 rounded-2xl neon-border">
             <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
               <div className="w-full">
-                <h1 className="text-2xl md:text-3xl font-bold mb-2">{pitch.name}</h1>
+                <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-3">
+                  {pitch.name}
+                  {pitchBookings.filter(b => b.booking_date === format(new Date(), 'yyyy-MM-dd')).length < 12 && (
+                    <span className="bg-emerald-500/20 text-emerald-400 text-[10px] uppercase tracking-widest font-black px-2 py-1 rounded-md border border-emerald-500/30 animate-pulse">
+                      Live Availability
+                    </span>
+                  )}
+                </h1>
                 <div className="flex items-center text-slate-400">
                   <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-2 text-emerald-500" />
                   <span className="text-sm md:text-base">{pitch.location_name}</span>
@@ -432,7 +459,119 @@ const PitchDetails: React.FC = () => {
             </div>
           </div>
 
-          {/* Reviews Section */}
+            {/* Calendar Availability Section */}
+            <div className="glass p-6 md:p-8 rounded-2xl neon-border">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-xl font-bold">Pitch Availability</h3>
+                  <p className="text-sm text-slate-500">Select a date to see available slots</p>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button 
+                    onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                    disabled={isBefore(startOfMonth(currentMonth), startOfMonth(new Date()))}
+                    className="p-2 glass rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <span className="text-lg font-bold min-w-[140px] text-center">
+                    {format(currentMonth, 'MMMM yyyy')}
+                  </span>
+                  <button 
+                    onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                    className="p-2 glass rounded-lg hover:bg-white/10"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2 mb-4">
+                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                  <div key={day} className="text-center text-xs font-bold text-slate-500 uppercase tracking-widest py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-7 gap-2">
+                {(() => {
+                  const monthStart = startOfMonth(currentMonth);
+                  const monthEnd = endOfMonth(monthStart);
+                  const startDate = startOfWeek(monthStart);
+                  const endDate = endOfWeek(monthEnd);
+                  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
+
+                  return calendarDays.map((day, idx) => {
+                    const dateStr = format(day, 'yyyy-MM-dd');
+                    const isSelected = bookingDate === dateStr;
+                    const isToday = isSameDay(day, new Date());
+                    const isPast = isBefore(day, startOfToday());
+                    const isCurrentMonth = isSameMonth(day, monthStart);
+                    
+                    const dayBookings = pitchBookings.filter(b => b.booking_date === dateStr);
+                    const isFullyBooked = dayBookings.length >= 12; // Simplified logic: 12 slots max
+                    const hasBookings = dayBookings.length > 0;
+
+                    return (
+                      <button
+                        key={idx}
+                        disabled={isPast}
+                        onClick={() => setBookingDate(dateStr)}
+                        className={`
+                          relative h-14 sm:h-20 rounded-xl border transition-all flex flex-col items-center justify-center p-1
+                          ${!isCurrentMonth ? 'opacity-20' : 'opacity-100'}
+                          ${isPast ? 'cursor-not-allowed bg-white/5 border-transparent' : 'cursor-pointer'}
+                          ${isSelected 
+                            ? 'bg-emerald-500 border-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.4)] scale-105 z-10' 
+                            : 'bg-white/5 border-white/10 hover:border-emerald-500/50 hover:bg-white/10'
+                          }
+                        `}
+                      >
+                        <span className={`text-sm sm:text-lg font-bold ${isSelected ? 'text-slate-950' : 'text-white'}`}>
+                          {format(day, 'd')}
+                        </span>
+                        
+                        {!isPast && isCurrentMonth && (
+                          <div className="mt-1 flex space-x-1">
+                            {hasBookings ? (
+                              <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-slate-950' : isFullyBooked ? 'bg-red-500' : 'bg-yellow-500'}`} />
+                            ) : (
+                              <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-slate-950/30' : 'bg-emerald-500/30'}`} />
+                            )}
+                          </div>
+                        )}
+
+                        {isToday && !isSelected && (
+                          <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                        )}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+
+              <div className="mt-8 flex flex-wrap items-center gap-6 text-xs font-bold uppercase tracking-widest text-slate-500">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/30" />
+                  <span>Available</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                  <span>Partially Booked</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500" />
+                  <span>Fully Booked</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                  <span className="text-emerald-400">Selected</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Reviews Section */}
           <div className="glass p-8 rounded-2xl neon-border">
             <h3 className="text-xl font-bold mb-6">Reviews & Ratings</h3>
             {reviews.length > 0 ? (
@@ -492,6 +631,11 @@ const PitchDetails: React.FC = () => {
                     onChange={(e) => setBookingDate(e.target.value)}
                   />
                 </div>
+                {pitchBookings.filter(b => b.booking_date === bookingDate).length > 0 && (
+                  <p className="text-[10px] text-yellow-500 mt-2 font-bold uppercase tracking-widest">
+                    {pitchBookings.filter(b => b.booking_date === bookingDate).length} slots already booked for this date
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
