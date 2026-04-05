@@ -133,25 +133,25 @@ const Tournaments: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
         <div>
-          <h1 className="text-3xl font-bold">Upcoming <span className="neon-text">Tournaments</span></h1>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">Upcoming <span className="neon-text italic">Tournaments</span></h1>
           <p className="text-slate-400">Join the biggest football events in Kenya and win big.</p>
         </div>
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
           <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
             <input 
               type="text" 
               placeholder="Search tournaments..."
-              className="w-full glass bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
+              className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50 transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <button 
             onClick={() => setIsCreating(true)}
-            className="btn-primary flex items-center space-x-2 w-full md:w-auto"
+            className="btn-primary flex items-center justify-center space-x-2 w-full md:w-auto px-6 py-3"
           >
             <Plus className="w-5 h-5" />
             <span>Create Tournament</span>
@@ -160,40 +160,42 @@ const Tournaments: React.FC = () => {
       </div>
 
       {filteredTournaments.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {filteredTournaments.map((tournament) => (
-            <div key={tournament.id} className="glass rounded-2xl overflow-hidden neon-border group">
-              <div className="relative h-48 overflow-hidden">
+            <div key={tournament.id} className="glass rounded-2xl overflow-hidden neon-border group flex flex-col">
+              <div className="relative h-48 sm:h-56 overflow-hidden">
                 <img 
                   src={tournament.image_url || 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=800'} 
                   alt={tournament.title} 
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   referrerPolicy="no-referrer"
                 />
-                <div className="absolute top-4 right-4 glass bg-emerald-500/80 px-3 py-1 rounded-full text-xs font-bold">
+                <div className="absolute top-4 right-4 glass bg-emerald-500/80 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white">
                   {tournament.prize_pool ? `Prize: ${tournament.prize_pool}` : 'Glory Awaits'}
                 </div>
               </div>
-              <div className="p-6">
-                <h3 className="text-xl font-bold mb-4">{tournament.title}</h3>
+              <div className="p-6 flex-grow flex flex-col">
+                <h3 className="text-xl font-bold mb-4 line-clamp-1">{tournament.title}</h3>
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center text-sm text-slate-400">
-                    <Calendar className="w-4 h-4 mr-3 text-emerald-500" />
-                    <span>{format(new Date(tournament.start_date), 'MMM d')} - {format(new Date(tournament.end_date), 'MMM d, yyyy')}</span>
+                    <Calendar className="w-4 h-4 mr-3 text-emerald-500 shrink-0" />
+                    <span className="truncate">{format(new Date(tournament.start_date), 'MMM d')} - {format(new Date(tournament.end_date), 'MMM d, yyyy')}</span>
                   </div>
                   <div className="flex items-center text-sm text-slate-400">
-                    <MapPin className="w-4 h-4 mr-3 text-emerald-500" />
-                    <span>{tournament.location}</span>
+                    <MapPin className="w-4 h-4 mr-3 text-emerald-500 shrink-0" />
+                    <span className="truncate">{tournament.location}</span>
                   </div>
                   <div className="flex items-center text-sm text-slate-400">
-                    <DollarSign className="w-4 h-4 mr-3 text-emerald-500" />
+                    <DollarSign className="w-4 h-4 mr-3 text-emerald-500 shrink-0" />
                     <span>Entry Fee: KSH {tournament.entry_fee.toLocaleString()}</span>
                   </div>
                 </div>
                 <p className="text-sm text-slate-500 mb-6 line-clamp-2">
                   {tournament.description}
                 </p>
-                <button className="btn-primary w-full">Register Team</button>
+                <div className="mt-auto">
+                  <button className="btn-primary w-full py-3">Register Team</button>
+                </div>
               </div>
             </div>
           ))}
@@ -207,12 +209,12 @@ const Tournaments: React.FC = () => {
 
       {/* Create Tournament Modal */}
       {isCreating && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsCreating(false)}></div>
-          <div className="relative w-full max-w-2xl glass p-8 rounded-2xl neon-border max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 py-6 overflow-y-auto">
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsCreating(false)}></div>
+          <div className="relative w-full max-w-2xl glass p-6 sm:p-8 rounded-2xl neon-border my-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Create Tournament</h2>
-              <button onClick={() => setIsCreating(false)} className="text-slate-500 hover:text-white">
+              <button onClick={() => setIsCreating(false)} className="text-slate-500 hover:text-white p-2">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -223,7 +225,7 @@ const Tournaments: React.FC = () => {
                 <input 
                   type="text" 
                   required
-                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                   placeholder="e.g. Nairobi Summer Cup"
                   value={newTournament.title}
                   onChange={(e) => setNewTournament({...newTournament, title: e.target.value})}
@@ -235,7 +237,7 @@ const Tournaments: React.FC = () => {
                 <textarea 
                   required
                   rows={3}
-                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                   placeholder="Tell teams about the tournament..."
                   value={newTournament.description}
                   onChange={(e) => setNewTournament({...newTournament, description: e.target.value})}
@@ -248,7 +250,7 @@ const Tournaments: React.FC = () => {
                   <input 
                     type="text" 
                     required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     placeholder="e.g. Camp Toyoyo"
                     value={newTournament.location}
                     onChange={(e) => setNewTournament({...newTournament, location: e.target.value})}
@@ -266,7 +268,7 @@ const Tournaments: React.FC = () => {
                     />
                     <label 
                       htmlFor="tournament-image"
-                      className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
+                      className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
                     >
                       {selectedFile ? (
                         <div className="flex items-center space-x-2">
@@ -285,7 +287,7 @@ const Tournaments: React.FC = () => {
               </div>
 
               {imagePreview && (
-                <div className="relative w-full h-48 rounded-xl overflow-hidden border border-white/10">
+                <div className="relative w-full h-40 sm:h-48 rounded-xl overflow-hidden border border-white/10">
                   <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                   <button 
                     type="button"
@@ -293,20 +295,20 @@ const Tournaments: React.FC = () => {
                       setSelectedFile(null);
                       setImagePreview(null);
                     }}
-                    className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors"
+                    className="absolute top-2 right-2 p-1.5 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
                   <input 
                     type="date" 
                     required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     value={newTournament.start_date}
                     onChange={(e) => setNewTournament({...newTournament, start_date: e.target.value})}
                   />
@@ -316,19 +318,19 @@ const Tournaments: React.FC = () => {
                   <input 
                     type="date" 
                     required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     value={newTournament.end_date}
                     onChange={(e) => setNewTournament({...newTournament, end_date: e.target.value})}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Prize Pool</label>
                   <input 
                     type="text" 
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     placeholder="e.g. KSH 50,000"
                     value={newTournament.prize_pool}
                     onChange={(e) => setNewTournament({...newTournament, prize_pool: e.target.value})}
@@ -339,19 +341,19 @@ const Tournaments: React.FC = () => {
                   <input 
                     type="number" 
                     required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     value={newTournament.entry_fee}
                     onChange={(e) => setNewTournament({...newTournament, entry_fee: Number(e.target.value)})}
                   />
                 </div>
               </div>
 
-              <div className="flex space-x-4 pt-4">
-                <button type="button" onClick={() => setIsCreating(false)} className="flex-1 btn-secondary">Cancel</button>
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <button type="button" onClick={() => setIsCreating(false)} className="flex-1 btn-secondary py-3">Cancel</button>
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="flex-1 btn-primary flex items-center justify-center space-x-2"
+                  className="flex-1 btn-primary flex items-center justify-center space-x-2 py-3"
                 >
                   {isSubmitting ? (
                     <>
@@ -359,7 +361,7 @@ const Tournaments: React.FC = () => {
                       <span>Creating...</span>
                     </>
                   ) : (
-                    <span>Create Tournament</span>
+                    <span className="font-bold">Create Tournament</span>
                   )}
                 </button>
               </div>

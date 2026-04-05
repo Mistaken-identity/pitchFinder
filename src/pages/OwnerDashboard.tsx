@@ -338,7 +338,9 @@ const OwnerDashboard: React.FC = () => {
             <Clock className="w-5 h-5 text-cyan-400" />
             <span>Incoming Booking Requests</span>
           </h2>
-          <div className="glass rounded-2xl overflow-hidden border border-white/10">
+          
+          {/* Desktop Table View */}
+          <div className="hidden md:block glass rounded-2xl overflow-hidden border border-white/10">
             <div className="overflow-x-auto">
               <table className="w-full text-left min-w-[800px]">
                 <thead className="glass bg-white/5 text-xs uppercase tracking-widest text-slate-500">
@@ -420,6 +422,67 @@ const OwnerDashboard: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4">
+            {bookings.length > 0 ? (
+              bookings.map(booking => (
+                <div key={booking.id} className="glass p-5 rounded-2xl border border-white/10 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-lg">{booking.pitch?.name}</h3>
+                      <p className="text-xs text-slate-500">{booking.team_name || booking.user?.full_name || 'Anonymous'}</p>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${
+                      booking.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 
+                      booking.status === 'cancelled' ? 'bg-red-500/20 text-red-400' : 
+                      'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {booking.status}
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 py-4 border-y border-white/5">
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Date & Time</p>
+                      <p className="text-sm font-medium">{format(new Date(booking.booking_date), 'MMM d')} @ {booking.start_time.slice(0, 5)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Total Price</p>
+                      <p className="text-sm font-bold text-emerald-400">KSH {booking.total_price.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                    <div className="flex gap-3">
+                      {booking.status === 'pending' && (
+                        <button 
+                          onClick={() => handleUpdateBookingStatus(booking.id, 'confirmed')}
+                          className="flex-1 py-3 glass bg-emerald-500/10 text-emerald-400 rounded-xl text-xs font-bold flex items-center justify-center space-x-2"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          <span>Confirm</span>
+                        </button>
+                      )}
+                      {booking.status !== 'cancelled' && (
+                        <button 
+                          onClick={() => handleUpdateBookingStatus(booking.id, 'cancelled')}
+                          className="flex-1 py-3 glass bg-red-500/10 text-red-400 rounded-xl text-xs font-bold flex items-center justify-center space-x-2"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          <span>Cancel</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-10 glass bg-white/5 rounded-xl border border-dashed border-white/10">
+                <p className="text-slate-500">No booking requests yet.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -228,9 +228,9 @@ const PitchDetails: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Images & Info */}
-        <div className="lg:col-span-2 space-y-8">
+        <div className="lg:col-span-2 space-y-6 md:space-y-8">
           {/* Image Gallery */}
-          <div className="relative h-[400px] rounded-2xl overflow-hidden glass neon-border">
+          <div className="relative h-[300px] md:h-[400px] rounded-2xl overflow-hidden glass neon-border">
             <img 
               src={images[activeImage]} 
               alt={pitch.name} 
@@ -241,15 +241,15 @@ const PitchDetails: React.FC = () => {
               <>
                 <button 
                   onClick={() => setActiveImage((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 glass p-2 rounded-full hover:bg-white/20"
+                  className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 glass p-2 rounded-full hover:bg-white/20"
                 >
-                  <ChevronLeft className="w-6 h-6" />
+                  <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
                 <button 
                   onClick={() => setActiveImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 glass p-2 rounded-full hover:bg-white/20"
+                  className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 glass p-2 rounded-full hover:bg-white/20"
                 >
-                  <ChevronRight className="w-6 h-6" />
+                  <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
                 </button>
               </>
             )}
@@ -265,39 +265,41 @@ const PitchDetails: React.FC = () => {
           </div>
 
           {/* Pitch Info */}
-          <div className="glass p-8 rounded-2xl neon-border">
+          <div className="glass p-6 md:p-8 rounded-2xl neon-border">
             <div className="flex flex-col md:flex-row justify-between items-start mb-6 gap-4">
-              <div>
-                <h1 className="text-3xl font-bold mb-2">{pitch.name}</h1>
+              <div className="w-full">
+                <h1 className="text-2xl md:text-3xl font-bold mb-2">{pitch.name}</h1>
                 <div className="flex items-center text-slate-400">
-                  <MapPin className="w-5 h-5 mr-2 text-emerald-500" />
-                  <span>{pitch.location_name}</span>
+                  <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-2 text-emerald-500" />
+                  <span className="text-sm md:text-base">{pitch.location_name}</span>
                 </div>
               </div>
-              <div className="flex items-center space-x-3 self-end md:self-start">
-                <button 
-                  onClick={toggleFavorite}
-                  disabled={favoriteLoading}
-                  className={`p-3 rounded-xl glass backdrop-blur-md transition-all flex items-center space-x-2 ${
-                    isFavorite ? 'bg-red-500/20 text-red-500 border-red-500/50' : 'bg-white/5 text-slate-400 hover:text-red-500 hover:bg-red-500/10'
-                  }`}
-                >
-                  <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
-                  <span className="text-sm font-bold">{isFavorite ? 'Favorited' : 'Favorite'}</span>
-                </button>
-                <button 
-                  onClick={sharePitch}
-                  className="p-3 rounded-xl glass bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all flex items-center space-x-2"
-                >
-                  <Share2 className="w-5 h-5" />
-                  <span className="text-sm font-bold">Share</span>
-                </button>
-                <div className="text-right ml-4">
-                  <div className="flex items-center text-yellow-400 mb-1">
-                    <Star className="w-5 h-5 fill-current" />
-                    <span className="ml-1 text-xl font-bold">{pitch.rating || 'New'}</span>
+              <div className="flex items-center justify-between w-full md:w-auto space-x-3">
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={toggleFavorite}
+                    disabled={favoriteLoading}
+                    className={`p-2.5 md:p-3 rounded-xl glass backdrop-blur-md transition-all flex items-center space-x-2 ${
+                      isFavorite ? 'bg-red-500/20 text-red-500 border-red-500/50' : 'bg-white/5 text-slate-400 hover:text-red-500 hover:bg-red-500/10'
+                    }`}
+                  >
+                    <Heart className={`w-4 h-4 md:w-5 md:h-5 ${isFavorite ? 'fill-current' : ''}`} />
+                    <span className="text-xs md:text-sm font-bold">{isFavorite ? 'Saved' : 'Save'}</span>
+                  </button>
+                  <button 
+                    onClick={sharePitch}
+                    className="p-2.5 md:p-3 rounded-xl glass bg-white/5 text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 transition-all flex items-center space-x-2"
+                  >
+                    <Share2 className="w-4 h-4 md:w-5 md:h-5" />
+                    <span className="text-xs md:text-sm font-bold">Share</span>
+                  </button>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center text-yellow-400 mb-1 justify-end">
+                    <Star className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                    <span className="ml-1 text-lg md:text-xl font-bold">{pitch.rating || 'New'}</span>
                   </div>
-                  <span className="text-slate-500 text-sm">{pitch.review_count} reviews</span>
+                  <span className="text-slate-500 text-[10px] md:text-sm">{pitch.review_count} reviews</span>
                 </div>
               </div>
             </div>
@@ -469,7 +471,7 @@ const PitchDetails: React.FC = () => {
 
         {/* Right Column: Booking Form */}
         <div className="lg:col-span-1">
-          <div className="glass p-8 rounded-2xl neon-border sticky top-24">
+          <div className="glass p-6 sm:p-8 rounded-2xl neon-border sticky top-24">
             <h3 className="text-2xl font-bold mb-6">Book Pitch</h3>
             <div className="flex items-center justify-between mb-8 pb-6 border-b border-white/10">
               <span className="text-slate-400">Price per hour</span>
@@ -485,20 +487,20 @@ const PitchDetails: React.FC = () => {
                     type="date" 
                     required
                     min={format(new Date(), 'yyyy-MM-dd')}
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     value={bookingDate}
                     onChange={(e) => setBookingDate(e.target.value)}
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Start Time</label>
                   <input 
                     type="time" 
                     required
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
                   />
@@ -506,7 +508,7 @@ const PitchDetails: React.FC = () => {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Duration (Hrs)</label>
                   <select 
-                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                     value={duration}
                     onChange={(e) => setDuration(Number(e.target.value))}
                   >
@@ -522,7 +524,7 @@ const PitchDetails: React.FC = () => {
                 <input 
                   type="text" 
                   placeholder="e.g. Estate FC"
-                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                  className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all"
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                 />
@@ -536,11 +538,11 @@ const PitchDetails: React.FC = () => {
                 <button 
                   type="submit"
                   disabled={bookingLoading}
-                  className="w-full btn-primary py-4 flex items-center justify-center space-x-2"
+                  className="w-full btn-primary py-4 flex items-center justify-center space-x-2 rounded-xl"
                 >
-                  {bookingLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Confirm Booking</span>}
+                  {bookingLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span className="font-bold">Confirm Booking</span>}
                 </button>
-                <p className="text-[10px] text-slate-500 text-center mt-4 uppercase tracking-widest">
+                <p className="text-[10px] text-slate-500 text-center mt-4 uppercase tracking-widest font-bold">
                   Secure M-Pesa Payment Required
                 </p>
               </div>

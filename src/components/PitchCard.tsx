@@ -17,6 +17,7 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
   const { user } = useAuth();
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isBookedNow, setIsBookedNow] = useState(false);
 
   const primaryImage = pitch.images?.find(img => img.is_primary)?.image_url || 
     (pitch.images?.[0]?.image_url) || 
@@ -26,7 +27,27 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
     if (user) {
       checkIfFavorite();
     }
+    checkCurrentBooking();
   }, [user, pitch.id]);
+
+  const checkCurrentBooking = async () => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:mm
+
+    const { data, error } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('pitch_id', pitch.id)
+      .eq('booking_date', today)
+      .eq('status', 'confirmed')
+      .lte('start_time', currentTime)
+      .gt('end_time', currentTime);
+
+    if (data && data.length > 0) {
+      setIsBookedNow(true);
+    }
+  };
 
   const checkIfFavorite = async () => {
     const { data } = await supabase
@@ -123,8 +144,15 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
               <Share2 className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="absolute bottom-2 left-2 glass px-2 py-1 rounded text-xs font-bold text-emerald-400">
-            KSH {pitch.price_per_hour}/hr
+          <div className="absolute bottom-2 left-2 flex flex-col space-y-1">
+            <div className="glass px-2 py-1 rounded text-xs font-bold text-emerald-400">
+              KSH {pitch.price_per_hour}/hr
+            </div>
+            {isBookedNow && (
+              <div className="bg-red-500/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-black text-white uppercase tracking-widest animate-pulse">
+                Currently Booked
+              </div>
+            )}
           </div>
         </div>
         
@@ -145,8 +173,8 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
           {!compact && (
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/10">
               <div className="flex items-center text-xs text-slate-500">
-                <Clock className="w-3 h-3 mr-1" />
-                <span>Available Now</span>
+                <Clock className={`w-3 h-3 mr-1 ${isBookedNow ? 'text-red-400' : 'text-emerald-400'}`} />
+                <span>{isBookedNow ? 'Next Slot Available' : 'Available Now'}</span>
               </div>
               <div className="flex items-center text-xs text-slate-500">
                 <Phone className="w-3 h-3 mr-1" />

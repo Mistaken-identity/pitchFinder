@@ -66,11 +66,11 @@ const Signup: React.FC = () => {
 
         <form onSubmit={handleSignup} className="space-y-6">
           {/* Role Selection */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
             <button
               type="button"
               onClick={() => setRole('player')}
-              className={`p-4 rounded-xl border transition-all duration-300 flex flex-col items-center space-y-2 ${
+              className={`p-4 rounded-xl border transition-all duration-300 flex flex-row sm:flex-col items-center justify-center space-x-4 sm:space-x-0 sm:space-y-2 ${
                 role === 'player' 
                   ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
                   : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
@@ -82,7 +82,7 @@ const Signup: React.FC = () => {
             <button
               type="button"
               onClick={() => setRole('owner')}
-              className={`p-4 rounded-xl border transition-all duration-300 flex flex-col items-center space-y-2 ${
+              className={`p-4 rounded-xl border transition-all duration-300 flex flex-row sm:flex-col items-center justify-center space-x-4 sm:space-x-0 sm:space-y-2 ${
                 role === 'owner' 
                   ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400' 
                   : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'

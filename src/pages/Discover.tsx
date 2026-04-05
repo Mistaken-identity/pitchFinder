@@ -88,27 +88,27 @@ const Discover: React.FC = () => {
     <div className="h-[calc(100vh-64px)] flex flex-col md:flex-row overflow-hidden">
       {/* Sidebar */}
       <div className={`w-full md:w-96 glass border-r border-white/10 flex flex-col z-20 ${viewMode === 'map' ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-white/10">
+        <div className="p-4 md:p-6 border-b border-white/10 bg-slate-950/50 backdrop-blur-md">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             <input 
               type="text" 
               placeholder="Search pitches or locations..." 
-              className="w-full glass bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-emerald-500/50"
+              className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none focus:border-emerald-500/50 transition-all"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <div className="flex items-center justify-between">
-            <button className="flex items-center space-x-2 text-xs text-slate-400 hover:text-white transition-colors">
-              <Filter className="w-3 h-3" />
+            <button className="flex items-center space-x-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-emerald-400 transition-colors">
+              <Filter className="w-3.5 h-3.5" />
               <span>Filters</span>
             </button>
-            <span className="text-xs text-slate-500">{filteredPitches.length} pitches found</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{filteredPitches.length} pitches found</span>
           </div>
         </div>
 
-        <div className="flex-grow overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar pb-24 md:pb-6">
           {loading ? (
             <div className="flex items-center justify-center h-32">
               <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />

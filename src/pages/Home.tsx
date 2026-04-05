@@ -87,21 +87,21 @@ const Home: React.FC = () => {
               <span className="text-xs font-bold tracking-widest uppercase text-slate-300">Kenya's #1 Football Platform</span>
             </div>
             
-            <h1 className="text-6xl md:text-8xl font-black tracking-tighter mb-8 leading-none">
+            <h1 className="text-5xl sm:text-6xl md:text-8xl font-black tracking-tighter mb-6 md:mb-8 leading-none">
               DOMINATE THE <br />
               <span className="neon-text italic">PITCH</span>
             </h1>
             
-            <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed">
+            <p className="text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-10 md:mb-12 leading-relaxed">
               Stop chasing owners. Start chasing goals. The ultimate platform to <span className="text-emerald-400 font-bold">Discover</span>, <span className="text-cyan-400 font-bold">Book</span>, and <span className="text-purple-400 font-bold">Conquer</span> Kenyan football.
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Link to="/discover" className="btn-primary flex items-center space-x-3 px-10 py-5 text-lg group">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6">
+              <Link to="/discover" className="btn-primary w-full sm:w-auto flex items-center justify-center space-x-3 px-8 md:px-10 py-4 md:py-5 text-base md:text-lg group">
                 <span>Start Playing</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-              <Link to="/find-opponent" className="btn-secondary flex items-center space-x-3 px-10 py-5 text-lg">
+              <Link to="/find-opponent" className="btn-secondary w-full sm:w-auto flex items-center justify-center space-x-3 px-8 md:px-10 py-4 md:py-5 text-base md:text-lg">
                 <Trophy className="w-5 h-5 text-emerald-400" />
                 <span>Find an Opponent</span>
               </Link>
@@ -209,42 +209,42 @@ const Home: React.FC = () => {
       {/* Featured Pitch Section */}
       <section className="py-32 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="glass rounded-[40px] overflow-hidden border border-white/10 flex flex-col lg:flex-row">
-            <div className="lg:w-1/2 relative h-80 lg:h-auto">
+          <div className="glass rounded-[30px] md:rounded-[40px] overflow-hidden border border-white/10 flex flex-col lg:flex-row">
+            <div className="lg:w-1/2 relative h-64 sm:h-80 lg:h-auto">
               <img 
                 src="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=1200" 
                 alt="Featured Pitch" 
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute top-6 left-6 bg-emerald-500 text-slate-950 px-4 py-1 rounded-full text-xs font-black uppercase tracking-tighter shadow-xl">
+              <div className="absolute top-4 left-4 sm:top-6 sm:left-6 bg-emerald-500 text-slate-950 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-tighter shadow-xl">
                 Pitch of the Month
               </div>
             </div>
-            <div className="lg:w-1/2 p-12 lg:p-20 flex flex-col justify-center">
+            <div className="lg:w-1/2 p-8 sm:p-12 lg:p-20 flex flex-col justify-center">
               <div className="flex items-center space-x-2 mb-6">
                 <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-current" />)}
+                  {[...Array(5)].map((_, i) => <Star key={i} className="w-3 h-3 sm:w-4 sm:h-4 fill-current" />)}
                 </div>
-                <span className="text-slate-500 text-sm">(120+ Reviews)</span>
+                <span className="text-slate-500 text-xs sm:text-sm">(120+ Reviews)</span>
               </div>
-              <h2 className="text-4xl md:text-5xl font-black mb-6 leading-tight">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black mb-4 sm:mb-6 leading-tight">
                 WESTLANDS <br />
                 <span className="neon-text">ARENA 5.0</span>
               </h2>
-              <p className="text-xl text-slate-400 mb-10 leading-relaxed">
+              <p className="text-base sm:text-lg lg:text-xl text-slate-400 mb-8 sm:mb-10 leading-relaxed">
                 Experience the finest 5-a-side astro-turf in Nairobi. High-intensity lighting, professional-grade surface, and a vibe that makes you feel like you're at the Emirates.
               </p>
-              <div className="space-y-4 mb-12">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-10 sm:mb-12">
                 {['Pro-Grade AstroTurf', 'Night Lighting', 'Changing Rooms', 'Ample Parking'].map((feature, i) => (
-                  <div key={i} className="flex items-center space-x-3 text-slate-300">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                  <div key={i} className="flex items-center space-x-3 text-slate-300 text-sm sm:text-base">
+                    <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 shrink-0" />
                     <span>{feature}</span>
                   </div>
                 ))}
               </div>
-              <Link to="/discover" className="btn-primary inline-flex items-center space-x-3 self-start px-8">
-                <span>Book This Pitch</span>
+              <Link to="/discover" className="btn-primary inline-flex items-center justify-center space-x-3 self-stretch sm:self-start px-8 py-4">
+                <span className="font-bold">Book This Pitch</span>
                 <ArrowRight className="w-5 h-5" />
               </Link>
             </div>
