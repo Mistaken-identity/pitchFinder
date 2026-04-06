@@ -296,9 +296,26 @@ const PitchDetails: React.FC = () => {
                     </span>
                   )}
                 </h1>
-                <div className="flex items-center text-slate-400">
-                  <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-2 text-emerald-500" />
-                  <span className="text-sm md:text-base">{pitch.location_name}</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-slate-400">
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 md:w-5 md:h-5 mr-2 text-emerald-500" />
+                    <span className="text-sm md:text-base">{pitch.location_name}</span>
+                  </div>
+                  <Link 
+                    to={`/owner/${pitch.owner_id}`}
+                    className="flex items-center space-x-2 group hover:text-emerald-400 transition-colors"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-slate-800 overflow-hidden border border-white/10 group-hover:border-emerald-500 transition-colors">
+                      {pitch.owner?.avatar_url ? (
+                        <img src={pitch.owner.avatar_url} alt={pitch.owner.full_name || ''} className="w-full h-full object-cover" />
+                      ) : (
+                        <Users className="w-3 h-3 text-slate-500 m-auto mt-1" />
+                      )}
+                    </div>
+                    <span className="text-sm font-bold underline decoration-white/10 group-hover:decoration-emerald-500/50 underline-offset-4">
+                      {pitch.owner?.full_name || 'Pitch Owner'}
+                    </span>
+                  </Link>
                 </div>
               </div>
               <div className="flex items-center justify-between w-full md:w-auto space-x-3">

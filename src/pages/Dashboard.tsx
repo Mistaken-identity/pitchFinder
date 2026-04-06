@@ -23,7 +23,7 @@ const Dashboard: React.FC = () => {
       // Fetch bookings
       const { data: bookingsData } = await supabase
         .from('bookings')
-        .select('*, pitch:pitches(*)')
+        .select('*, pitch:pitches(*, owner:profiles(*))')
         .eq('user_id', user.id)
         .order('booking_date', { ascending: true });
       
@@ -49,7 +49,7 @@ const Dashboard: React.FC = () => {
       // Fetch popular/nearby pitches
       const { data: pitchesData } = await supabase
         .from('pitches')
-        .select('*, images:pitch_images(*)')
+        .select('*, images:pitch_images(*), owner:profiles(*)')
         .limit(3);
       
       setNearbyPitches(pitchesData || []);

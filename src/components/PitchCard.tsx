@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Star, Clock, Phone, Heart, Share2 } from 'lucide-react';
-import { Pitch } from '../types';
+import { MapPin, Star, Clock, Phone, Heart, Share2, Users } from 'lucide-react';
+import { Pitch, Profile } from '../types';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 import { motion } from 'motion/react';
 
 interface PitchCardProps {
-  pitch: Pitch;
+  pitch: Pitch & { owner?: Profile };
   compact?: boolean;
 }
 
@@ -165,9 +165,30 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
             </div>
           </div>
           
-          <div className="flex items-center text-slate-400 text-sm mb-3">
-            <MapPin className="w-4 h-4 mr-1 text-emerald-500" />
-            <span className="truncate">{pitch.location_name}</span>
+          <div className="flex flex-col space-y-2 mb-3">
+            <div className="flex items-center text-slate-400 text-sm">
+              <MapPin className="w-4 h-4 mr-1 text-emerald-500" />
+              <span className="truncate">{pitch.location_name}</span>
+            </div>
+            
+            {pitch.owner && (
+              <Link 
+                to={`/owner/${pitch.owner_id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center space-x-2 group/owner hover:text-emerald-400 transition-colors"
+              >
+                <div className="w-5 h-5 rounded-full bg-slate-800 overflow-hidden border border-white/10 group-hover/owner:border-emerald-500 transition-colors">
+                  {pitch.owner.avatar_url ? (
+                    <img src={pitch.owner.avatar_url} alt={pitch.owner.full_name || ''} className="w-full h-full object-cover" />
+                  ) : (
+                    <Users className="w-3 h-3 text-slate-500 m-auto" />
+                  )}
+                </div>
+                <span className="text-xs text-slate-500 group-hover/owner:text-emerald-400 transition-colors truncate">
+                  {pitch.owner.full_name}
+                </span>
+              </Link>
+            )}
           </div>
           
           {!compact && (

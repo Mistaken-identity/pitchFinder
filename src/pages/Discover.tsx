@@ -56,7 +56,7 @@ const Discover: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('pitches')
-        .select('*, images:pitch_images(*)');
+        .select('*, images:pitch_images(*), owner:profiles(*)');
       
       if (error) throw error;
       setPitches(data || []);
