@@ -104,7 +104,10 @@ const Discover: React.FC = () => {
               <Filter className="w-3.5 h-3.5" />
               <span>Filters</span>
             </button>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{filteredPitches.length} pitches found</span>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{filteredPitches.length} pitches found</span>
+              <Link to="/seed" className="text-[8px] text-emerald-500/50 hover:text-emerald-500 uppercase tracking-widest mt-1">Seed Data</Link>
+            </div>
           </div>
         </div>
 

@@ -12,6 +12,7 @@ import FindOpponent from './pages/FindOpponent';
 import ProfilePage from './pages/Profile';
 import Tournaments from './pages/Tournaments';
 import OwnerProfile from './pages/OwnerProfile';
+import SeedData from './pages/SeedData';
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="/find-opponent" element={<FindOpponent />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/tournaments" element={<Tournaments />} />
+            <Route path="/seed" element={<SeedData />} />
           </Routes>
         </Layout>
       </Router>
