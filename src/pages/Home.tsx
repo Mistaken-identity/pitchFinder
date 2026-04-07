@@ -4,8 +4,11 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   MapPin, Users, Calendar, ShieldCheck, ArrowRight, Trophy, Code, 
-  Zap, Target, MessageSquare, Star, TrendingUp, CheckCircle2 
+  Zap, Target, MessageSquare, Star, TrendingUp, CheckCircle2, Loader2
 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { Pitch } from '../types';
+import PitchCard from '../components/PitchCard';
 
 const HUMOR_QUOTES = [
   "In football, the ball is round. In coding, the bugs are everywhere. Both will ruin your weekend.",
@@ -47,13 +50,33 @@ const TESTIMONIALS = [
 
 const Home: React.FC = () => {
   const [quoteIndex, setQuoteIndex] = useState(0);
+  const [topPitches, setTopPitches] = useState<Pitch[]>([]);
+  const [loadingPitches, setLoadingPitches] = useState(true);
 
   useEffect(() => {
+    fetchTopPitches();
     const interval = setInterval(() => {
       setQuoteIndex((prev) => (prev + 1) % HUMOR_QUOTES.length);
     }, 15000);
     return () => clearInterval(interval);
   }, []);
+
+  const fetchTopPitches = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pitches')
+        .select('*, images:pitch_images(*), owner:profiles(*)')
+        .order('rating', { ascending: false })
+        .limit(3);
+      
+      if (error) throw error;
+      setTopPitches(data || []);
+    } catch (error) {
+      console.error('Error fetching top pitches:', error);
+    } finally {
+      setLoadingPitches(false);
+    }
+  };
 
   return (
     <div className="flex flex-col bg-slate-950 text-slate-50 overflow-x-hidden">
@@ -140,6 +163,50 @@ const Home: React.FC = () => {
               </motion.div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Top Grounds Section */}
+      <section className="py-32 relative z-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-16 gap-6">
+            <div className="max-w-2xl">
+              <h2 className="text-4xl md:text-6xl font-black mb-6 leading-tight">
+                TOP RATED <br />
+                <span className="neon-text">GROUNDS</span>
+              </h2>
+              <p className="text-xl text-slate-400">The most elite pitches in the city, vetted by the community and ready for your next match.</p>
+            </div>
+            <Link to="/discover" className="btn-secondary flex items-center space-x-2 group">
+              <span>View All Grounds</span>
+              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Link>
+          </div>
+
+          {loadingPitches ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+            </div>
+          ) : topPitches.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {topPitches.map((pitch, i) => (
+                <motion.div
+                  key={pitch.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <PitchCard pitch={pitch} />
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 glass rounded-3xl border border-dashed border-white/10">
+              <p className="text-slate-500 mb-6">No grounds listed yet. Be the first to list your pitch!</p>
+              <Link to="/signup?role=owner" className="btn-primary px-8 py-3">Register Your Pitch</Link>
+            </div>
+          )}
         </div>
       </section>
 

@@ -59,7 +59,13 @@ const Discover: React.FC = () => {
         .select('*, images:pitch_images(*), owner:profiles(*)');
       
       if (error) throw error;
-      setPitches(data || []);
+      const fetchedPitches = data || [];
+      setPitches(fetchedPitches);
+      
+      // Center map on first pitch if available
+      if (fetchedPitches.length > 0 && map) {
+        map.panTo({ lat: fetchedPitches[0].latitude, lng: fetchedPitches[0].longitude });
+      }
     } catch (error) {
       console.error('Error fetching pitches:', error);
     } finally {
@@ -70,6 +76,12 @@ const Discover: React.FC = () => {
   useEffect(() => {
     fetchPitches();
   }, []);
+
+  useEffect(() => {
+    if (map && pitches.length > 0) {
+      map.panTo({ lat: pitches[0].latitude, lng: pitches[0].longitude });
+    }
+  }, [map, pitches]);
 
   const onLoad = useCallback((map: google.maps.Map) => {
     setMap(map);
