@@ -31,6 +31,8 @@ const OwnerDashboard: React.FC = () => {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddingPitch, setIsAddingPitch] = useState(false);
+  const [isEditingPitch, setIsEditingPitch] = useState(false);
+  const [editingPitchId, setEditingPitchId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [paymentPhone, setPaymentPhone] = useState('');
@@ -122,37 +124,72 @@ const OwnerDashboard: React.FC = () => {
 
         const { image_url: _, ...pitchData } = newPitch;
         
-        const { data: pitch, error: pitchError } = await supabase
-          .from('pitches')
-          .insert({
-            ...pitchData,
-            owner_id: user!.id
-          })
-          .select()
-          .single();
+        if (isEditingPitch && editingPitchId) {
+          const { error: updateError } = await supabase
+            .from('pitches')
+            .update(pitchData)
+            .eq('id', editingPitchId);
+          
+          if (updateError) throw updateError;
 
-        if (pitchError) throw pitchError;
+          if (imageUrl) {
+            // Update or insert primary image
+            const { data: existingImage } = await supabase
+              .from('pitch_images')
+              .select('id')
+              .eq('pitch_id', editingPitchId)
+              .eq('is_primary', true)
+              .single();
+            
+            if (existingImage) {
+              await supabase
+                .from('pitch_images')
+                .update({ image_url: imageUrl })
+                .eq('id', existingImage.id);
+            } else {
+              await supabase.from('pitch_images').insert({
+                pitch_id: editingPitchId,
+                image_url: imageUrl,
+                is_primary: true
+              });
+            }
+          }
+          toast.success('Pitch updated successfully!');
+        } else {
+          const { data: pitch, error: pitchError } = await supabase
+            .from('pitches')
+            .insert({
+              ...pitchData,
+              owner_id: user!.id
+            })
+            .select()
+            .single();
 
-        if (imageUrl) {
-          await supabase.from('pitch_images').insert({
-            pitch_id: pitch.id,
-            image_url: imageUrl,
-            is_primary: true
+          if (pitchError) throw pitchError;
+
+          if (imageUrl) {
+            await supabase.from('pitch_images').insert({
+              pitch_id: pitch.id,
+              image_url: imageUrl,
+              is_primary: true
+            });
+          }
+
+          // Record payment
+          await supabase.from('payments').insert({
+            user_id: user!.id,
+            amount: 500,
+            phone_number: paymentPhone,
+            status: 'completed',
+            type: 'pitch_listing',
+            reference_id: pitch.id
           });
+          toast.success('Pitch added successfully!');
         }
 
-        // Record payment
-        await supabase.from('payments').insert({
-          user_id: user!.id,
-          amount: 500,
-          phone_number: paymentPhone,
-          status: 'completed',
-          type: 'pitch_listing',
-          reference_id: pitch.id
-        });
-
-        toast.success('Pitch added successfully!');
         setIsAddingPitch(false);
+        setIsEditingPitch(false);
+        setEditingPitchId(null);
         setIsPaying(false);
         setPaymentStatus('idle');
         setSelectedFile(null);
@@ -170,7 +207,7 @@ const OwnerDashboard: React.FC = () => {
         });
         fetchData();
       } catch (error: any) {
-        toast.error(error.message || 'Error adding pitch');
+        toast.error(error.message || 'Error saving pitch');
         setPaymentStatus('failed');
       } finally {
         setIsSubmitting(false);
@@ -311,10 +348,43 @@ const OwnerDashboard: React.FC = () => {
                     <p className="text-xs text-slate-500">{pitch.location_name}</p>
                   </div>
                   <div className="flex space-x-2">
-                    <button className="p-2 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors">
+                    <button 
+                      onClick={() => {
+                        setNewPitch({
+                          name: pitch.name,
+                          location_name: pitch.location_name,
+                          latitude: pitch.latitude,
+                          longitude: pitch.longitude,
+                          price_per_hour: pitch.price_per_hour,
+                          description: pitch.description || '',
+                          contact_phone: pitch.contact_phone || '',
+                          whatsapp_number: pitch.whatsapp_number || '',
+                          image_url: pitch.images?.[0]?.image_url || ''
+                        });
+                        setImagePreview(pitch.images?.[0]?.image_url || null);
+                        setEditingPitchId(pitch.id);
+                        setIsEditingPitch(true);
+                        setIsAddingPitch(true);
+                      }}
+                      className="p-2 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                    >
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button className="p-2 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors">
+                    <button 
+                      onClick={async () => {
+                        if (window.confirm('Are you sure you want to delete this pitch?')) {
+                          try {
+                            const { error } = await supabase.from('pitches').delete().eq('id', pitch.id);
+                            if (error) throw error;
+                            toast.success('Pitch deleted');
+                            fetchData();
+                          } catch (err: any) {
+                            toast.error(err.message);
+                          }
+                        }
+                      }}
+                      className="p-2 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -487,13 +557,30 @@ const OwnerDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Pitch Modal */}
+      {/* Add/Edit Pitch Modal */}
       {isAddingPitch && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsAddingPitch(false)}></div>
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => {
+            setIsAddingPitch(false);
+            setIsEditingPitch(false);
+            setEditingPitchId(null);
+            setNewPitch({
+              name: '',
+              location_name: '',
+              latitude: -1.286389,
+              longitude: 36.817223,
+              price_per_hour: 3000,
+              description: '',
+              contact_phone: '',
+              whatsapp_number: '',
+              image_url: ''
+            });
+            setImagePreview(null);
+            setSelectedFile(null);
+          }}></div>
           <div className="relative w-full max-w-4xl glass p-8 rounded-2xl neon-border max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <h2 className="text-2xl font-bold mb-6">Add New Pitch</h2>
-            <form onSubmit={handleAddPitch} className="space-y-6">
+            <h2 className="text-2xl font-bold mb-6">{isEditingPitch ? 'Edit Pitch Details' : 'Add New Pitch'}</h2>
+            <form onSubmit={isEditingPitch ? (e) => { e.preventDefault(); processPayment(); } : handleAddPitch} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Left Side: Form Fields */}
                 <div className="space-y-6">
@@ -683,13 +770,18 @@ const OwnerDashboard: React.FC = () => {
             <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <DollarSign className="w-8 h-8 text-white" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Listing Fee Required</h2>
-            <p className="text-slate-400 mb-6">To list your pitch on PitchFinder KE, a one-time fee of <span className="text-emerald-400 font-bold text-lg">KSH 500</span> is required.</p>
+            <h2 className="text-2xl font-bold mb-2">{isEditingPitch ? 'Confirm Update' : 'Listing Fee Required'}</h2>
+            <p className="text-slate-400 mb-6">
+              {isEditingPitch 
+                ? 'Updating your pitch details is free. Please confirm your phone number to proceed.'
+                : 'To list your pitch on PitchFinder KE, a one-time fee of KSH 500 is required.'
+              }
+            </p>
             
             {paymentStatus === 'idle' ? (
               <div className="space-y-4">
                 <div className="text-left">
-                  <label className="block text-xs text-slate-500 uppercase tracking-widest mb-2 ml-1">M-Pesa Phone Number</label>
+                  <label className="block text-xs text-slate-500 uppercase tracking-widest mb-2 ml-1">Phone Number</label>
                   <input 
                     type="tel" 
                     className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
@@ -702,25 +794,27 @@ const OwnerDashboard: React.FC = () => {
                   onClick={processPayment}
                   className="btn-primary w-full py-4 font-bold"
                 >
-                  Pay with M-Pesa
+                  {isEditingPitch ? 'Confirm & Update' : 'Pay with M-Pesa'}
                 </button>
                 <button 
                   onClick={() => setIsPaying(false)}
                   className="text-slate-500 text-sm hover:text-white transition-colors"
                 >
-                  Cancel Listing
+                  Cancel
                 </button>
               </div>
             ) : paymentStatus === 'pending' ? (
               <div className="py-8 space-y-4">
                 <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mx-auto" />
-                <p className="text-emerald-400 font-medium animate-pulse">Waiting for M-Pesa confirmation...</p>
-                <p className="text-xs text-slate-500">Please check your phone and enter your M-Pesa PIN.</p>
+                <p className="text-emerald-400 font-medium animate-pulse">
+                  {isEditingPitch ? 'Updating pitch...' : 'Waiting for M-Pesa confirmation...'}
+                </p>
+                {!isEditingPitch && <p className="text-xs text-slate-500">Please check your phone and enter your M-Pesa PIN.</p>}
               </div>
             ) : paymentStatus === 'success' ? (
               <div className="py-8 space-y-4">
                 <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto" />
-                <p className="text-emerald-400 font-bold">Payment Successful!</p>
+                <p className="text-emerald-400 font-bold">{isEditingPitch ? 'Update Successful!' : 'Payment Successful!'}</p>
               </div>
             ) : (
               <div className="py-8 space-y-4">

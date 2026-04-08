@@ -20,6 +20,8 @@ const FindOpponent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
+  const [isEditingTeam, setIsEditingTeam] = useState(false);
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [lastPostedMatch, setLastPostedMatch] = useState<MatchRequest | null>(null);
@@ -130,28 +132,46 @@ const FindOpponent: React.FC = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('teams')
-        .insert({
-          ...newTeam,
-          captain_id: user.id
-        })
-        .select()
-        .single();
+      if (isEditingTeam && editingTeamId) {
+        const { error } = await supabase
+          .from('teams')
+          .update(newTeam)
+          .eq('id', editingTeamId);
+        
+        if (error) throw error;
+        toast.success('Team updated successfully!');
+      } else {
+        const { error } = await supabase
+          .from('teams')
+          .insert({
+            ...newTeam,
+            captain_id: user.id
+          });
 
-      if (error) throw error;
+        if (error) throw error;
+        setShowWelcomeNote(true);
+      }
 
-      setShowWelcomeNote(true);
       setIsCreatingTeam(false);
+      setIsEditingTeam(false);
+      setEditingTeamId(null);
+      setNewTeam({
+        name: '',
+        description: '',
+        skill_level: 'intermediate',
+        location: '',
+        captain_phone: '',
+        assistant_phone: ''
+      });
       await fetchData();
       
       // If there was a pending match, accept it now
-      if (pendingMatchId) {
+      if (pendingMatchId && !isEditingTeam) {
         handleAcceptChallenge(pendingMatchId);
         setPendingMatchId(null);
       }
     } catch (error: any) {
-      toast.error(error.message || 'Error creating team');
+      toast.error(error.message || `Error ${isEditingTeam ? 'updating' : 'creating'} team`);
     }
   };
 
@@ -402,14 +422,34 @@ const FindOpponent: React.FC = () => {
             {myTeams.length > 0 ? (
               <div className="space-y-4">
                 {myTeams.map(team => (
-                  <div key={team.id} className="glass bg-white/5 p-4 rounded-xl border border-white/5 flex items-center space-x-4">
-                    <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center border border-white/10">
-                      <Users className="w-5 h-5 text-slate-500" />
+                  <div key={team.id} className="glass bg-white/5 p-4 rounded-xl border border-white/5 flex items-center justify-between group">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center border border-white/10">
+                        <Users className="w-5 h-5 text-slate-500" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm">{team.name}</h3>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-widest">{team.skill_level}</p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-sm">{team.name}</h3>
-                      <p className="text-[10px] text-slate-500 uppercase tracking-widest">{team.skill_level}</p>
-                    </div>
+                    <button 
+                      onClick={() => {
+                        setNewTeam({
+                          name: team.name,
+                          description: team.description || '',
+                          skill_level: team.skill_level,
+                          location: team.location || '',
+                          captain_phone: team.captain_phone,
+                          assistant_phone: team.assistant_phone
+                        });
+                        setEditingTeamId(team.id);
+                        setIsEditingTeam(true);
+                        setIsCreatingTeam(true);
+                      }}
+                      className="p-2 glass bg-white/5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:text-emerald-400"
+                    >
+                      <Plus className="w-3 h-3 rotate-45" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -570,12 +610,24 @@ const FindOpponent: React.FC = () => {
         </div>
       )}
 
-      {/* Create Team Modal */}
+      {/* Create/Edit Team Modal */}
       {isCreatingTeam && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsCreatingTeam(false)}></div>
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => {
+            setIsCreatingTeam(false);
+            setIsEditingTeam(false);
+            setEditingTeamId(null);
+            setNewTeam({
+              name: '',
+              description: '',
+              skill_level: 'intermediate',
+              location: '',
+              captain_phone: '',
+              assistant_phone: ''
+            });
+          }}></div>
           <div className="relative w-full max-w-lg glass p-8 rounded-2xl neon-border">
-            <h2 className="text-2xl font-bold mb-6">Create Your Team</h2>
+            <h2 className="text-2xl font-bold mb-6">{isEditingTeam ? 'Edit Team Profile' : 'Create Your Team'}</h2>
             <form onSubmit={handleCreateTeam} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Team Name</label>

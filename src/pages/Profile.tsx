@@ -10,6 +10,7 @@ import { Pitch } from '../types';
 const Profile: React.FC = () => {
   const { user, profile, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [favorites, setFavorites] = useState<Pitch[]>([]);
   const [favsLoading, setFavsLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -64,6 +65,7 @@ const Profile: React.FC = () => {
       if (error) throw error;
 
       await refreshProfile();
+      setIsEditing(false);
       toast.success('Profile updated successfully!');
     } catch (error: any) {
       toast.error(error.message || 'Error updating profile');
@@ -95,7 +97,10 @@ const Profile: React.FC = () => {
                 <User className="w-16 h-16 text-slate-600" />
               )}
             </div>
-            <button className="absolute -bottom-2 -right-2 p-2 bg-emerald-500 rounded-xl text-slate-950 shadow-lg hover:scale-110 transition-transform">
+            <button 
+              onClick={() => setIsEditing(true)}
+              className="absolute -bottom-2 -right-2 p-2 bg-emerald-500 rounded-xl text-slate-950 shadow-lg hover:scale-110 transition-transform"
+            >
               <Camera className="w-4 h-4" />
             </button>
           </div>
@@ -115,72 +120,121 @@ const Profile: React.FC = () => {
                   <span>Member since {new Date(profile.created_at).getFullYear()}</span>
                 </div>
               </div>
+              
+              {!isEditing && (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="btn-secondary flex items-center space-x-2 px-6"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Edit Profile</span>
+                </button>
+              )}
             </div>
 
-            <form onSubmit={handleUpdate} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                    <input
-                      type="text"
-                      className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
-                      value={formData.full_name}
-                      onChange={(e) => setFormData({...formData, full_name: e.target.value})}
-                    />
+            {isEditing ? (
+              <form onSubmit={handleUpdate} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                      <input
+                        type="text"
+                        required
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
+                        value={formData.full_name}
+                        onChange={(e) => setFormData({...formData, full_name: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Phone Number</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                      <input
+                        type="tel"
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Phone Number</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                    <input
-                      type="tel"
-                      className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 pl-10 pr-4 focus:outline-none focus:border-emerald-500/50"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Email Address (Private)</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-700" />
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Avatar URL</label>
                   <input
-                    type="email"
-                    disabled
-                    className="w-full glass bg-white/5 border border-white/5 rounded-lg py-3 pl-10 pr-4 text-slate-600 cursor-not-allowed"
-                    value={user?.email || ''}
+                    type="url"
+                    className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
+                    placeholder="https://example.com/avatar.jpg"
+                    value={formData.avatar_url}
+                    onChange={(e) => setFormData({...formData, avatar_url: e.target.value})}
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Avatar URL</label>
-                <input
-                  type="url"
-                  className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50"
-                  placeholder="https://example.com/avatar.jpg"
-                  value={formData.avatar_url}
-                  onChange={(e) => setFormData({...formData, avatar_url: e.target.value})}
-                />
-              </div>
+                <div className="flex items-center space-x-4 pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="btn-primary flex items-center space-x-2 px-8"
+                  >
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                    <span>Save Changes</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditing(false);
+                      setFormData({
+                        full_name: profile.full_name || '',
+                        phone: profile.phone || '',
+                        avatar_url: profile.avatar_url || ''
+                      });
+                    }}
+                    className="px-6 py-3 text-slate-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-4 p-4 glass bg-white/5 rounded-2xl border border-white/5">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Email Address</p>
+                      <p className="text-slate-200">{user?.email}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4 p-4 glass bg-white/5 rounded-2xl border border-white/5">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                      <Phone className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Phone Number</p>
+                      <p className="text-slate-200">{profile.phone || 'Not provided'}</p>
+                    </div>
+                  </div>
+                </div>
 
-              <div className="pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary flex items-center space-x-2 px-8"
-                >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                  <span>Save Changes</span>
-                </button>
+                <div className="space-y-4">
+                  <div className="p-6 glass bg-white/5 rounded-2xl border border-white/5">
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Account Status</h3>
+                    <div className="flex items-center space-x-2 text-emerald-400">
+                      <ShieldCheck className="w-5 h-5" />
+                      <span className="font-bold">Verified Account</span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">Your account is fully verified and active.</p>
+                  </div>
+                </div>
               </div>
-            </form>
+            )}
           </div>
         </div>
       </div>
