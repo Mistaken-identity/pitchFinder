@@ -2,11 +2,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { supabase } from '../lib/supabase';
-import { Pitch } from '../types';
+import { Pitch, Booking } from '../types';
 import PitchCard from '../components/PitchCard';
-import { Search, Filter, Map as MapIcon, List, Loader2 } from 'lucide-react';
+import { Search, Filter, Map as MapIcon, List, Loader2, Calendar as CalendarIcon, Clock, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { format, addHours, parseISO, isAfter } from 'date-fns';
 
 const mapContainerStyle = {
   width: '100%',
@@ -52,6 +53,13 @@ const Discover: React.FC = () => {
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [map, setMap] = useState<google.maps.Map | null>(null);
 
+  // Availability Filter State
+  const [filterDate, setFilterDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [filterTime, setFilterTime] = useState(format(addHours(new Date(), 1), 'HH:00'));
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+
   const fetchPitches = async () => {
     try {
       const { data, error } = await supabase
@@ -73,9 +81,29 @@ const Discover: React.FC = () => {
     }
   };
 
+  const fetchBookings = async () => {
+    if (!filterDate) return;
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('booking_date', filterDate)
+        .eq('status', 'confirmed');
+      
+      if (error) throw error;
+      setBookings(data || []);
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    }
+  };
+
   useEffect(() => {
     fetchPitches();
   }, []);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [filterDate]);
 
   useEffect(() => {
     if (map && pitches.length > 0) {
@@ -91,10 +119,30 @@ const Discover: React.FC = () => {
     setMap(null);
   }, []);
 
-  const filteredPitches = pitches.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    p.location_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const isPitchAvailable = (pitchId: string) => {
+    if (!showAvailableOnly || !filterDate || !filterTime) return true;
+    
+    const selectedStart = `${filterDate}T${filterTime}`;
+    // Assume 1 hour duration for filtering
+    const selectedEnd = format(addHours(parseISO(selectedStart), 1), "yyyy-MM-dd'T'HH:mm");
+
+    return !bookings.some(booking => {
+      if (booking.pitch_id !== pitchId) return false;
+      
+      const bookingStart = `${booking.booking_date}T${booking.start_time}`;
+      const bookingEnd = `${booking.booking_date}T${booking.end_time}`;
+      
+      // Check overlap: (StartA < EndB) and (EndA > StartB)
+      return (selectedStart < bookingEnd && selectedEnd > bookingStart);
+    });
+  };
+
+  const filteredPitches = pitches.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         p.location_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesAvailability = isPitchAvailable(p.id);
+    return matchesSearch && matchesAvailability;
+  });
 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col md:flex-row overflow-hidden">
@@ -112,15 +160,81 @@ const Discover: React.FC = () => {
             />
           </div>
           <div className="flex items-center justify-between">
-            <button className="flex items-center space-x-2 text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-emerald-400 transition-colors">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center space-x-2 text-xs font-bold uppercase tracking-widest transition-colors ${showFilters ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-400'}`}
+            >
               <Filter className="w-3.5 h-3.5" />
               <span>Filters</span>
+              {showFilters ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
             <div className="flex flex-col items-end">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{filteredPitches.length} pitches found</span>
               <Link to="/seed" className="text-[8px] text-emerald-500/50 hover:text-emerald-500 uppercase tracking-widest mt-1">Seed Data</Link>
             </div>
           </div>
+
+          <AnimatePresence>
+            {showFilters && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="pt-4 space-y-4 border-t border-white/5 mt-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold flex items-center space-x-1">
+                        <CalendarIcon className="w-3 h-3" />
+                        <span>Date</span>
+                      </label>
+                      <input 
+                        type="date" 
+                        value={filterDate}
+                        onChange={(e) => setFilterDate(e.target.value)}
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-emerald-500/50"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] uppercase tracking-wider text-slate-500 font-bold flex items-center space-x-1">
+                        <Clock className="w-3 h-3" />
+                        <span>Time</span>
+                      </label>
+                      <input 
+                        type="time" 
+                        value={filterTime}
+                        onChange={(e) => setFilterTime(e.target.value)}
+                        className="w-full glass bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-xs focus:outline-none focus:border-emerald-500/50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-slate-300">Available Only</span>
+                      <span className="text-[10px] text-slate-500">Hide booked grounds</span>
+                    </div>
+                    <button 
+                      onClick={() => setShowAvailableOnly(!showAvailableOnly)}
+                      className={`w-10 h-5 rounded-full relative transition-colors ${showAvailableOnly ? 'bg-emerald-500' : 'bg-slate-700'}`}
+                    >
+                      <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${showAvailableOnly ? 'left-6' : 'left-1'}`} />
+                    </button>
+                  </div>
+
+                  {showAvailableOnly && (
+                    <div className="flex items-center justify-between text-[10px] text-emerald-400 font-bold uppercase tracking-widest bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                      <span>Filtering for {format(parseISO(filterDate), 'MMM d')} @ {filterTime}</span>
+                      <button onClick={() => setShowAvailableOnly(false)}>
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="flex-grow overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar pb-24 md:pb-6">
