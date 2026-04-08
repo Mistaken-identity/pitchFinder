@@ -208,6 +208,12 @@ CREATE POLICY "Captains can delete teams" ON teams FOR DELETE USING (auth.uid() 
 
 -- Match Requests: Everyone can view, only team captains can manage
 CREATE POLICY "Match requests viewable by everyone" ON match_requests FOR SELECT USING (true);
-CREATE POLICY "Captains can manage match requests" ON match_requests FOR ALL USING (
+CREATE POLICY "Captains can insert match requests" ON match_requests FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM teams WHERE id = team_id AND captain_id = auth.uid())
+);
+CREATE POLICY "Captains can update match requests" ON match_requests FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM teams WHERE id = team_id AND captain_id = auth.uid())
+);
+CREATE POLICY "Captains can delete match requests" ON match_requests FOR DELETE USING (
   EXISTS (SELECT 1 FROM teams WHERE id = team_id AND captain_id = auth.uid())
 );

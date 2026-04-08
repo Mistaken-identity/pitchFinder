@@ -3,14 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { MatchRequest, Team, Pitch } from '../types';
-import { Trophy, Users, Calendar, MapPin, Clock, Plus, Loader2, ShieldCheck, MessageCircle, Phone } from 'lucide-react';
+import { Trophy, Users, Calendar, MapPin, Clock, Plus, Loader2, ShieldCheck, MessageCircle, Phone, Share2, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const FindOpponent: React.FC = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestId = searchParams.get('request_id');
+
   const [matchRequests, setMatchRequests] = useState<MatchRequest[]>([]);
   const [myTeams, setMyTeams] = useState<Team[]>([]);
   const [pitches, setPitches] = useState<Pitch[]>([]);
@@ -18,11 +21,15 @@ const FindOpponent: React.FC = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [isCreatingTeam, setIsCreatingTeam] = useState(false);
   const [pendingMatchId, setPendingMatchId] = useState<string | null>(null);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [lastPostedMatch, setLastPostedMatch] = useState<MatchRequest | null>(null);
+  const [focusedMatch, setFocusedMatch] = useState<MatchRequest | null>(null);
 
   // New Match Request Form
   const [newMatch, setNewMatch] = useState({
     team_id: '',
     pitch_id: '',
+    opponent_team_id: '',
     match_date: format(new Date(), 'yyyy-MM-dd'),
     match_time: '18:00',
     skill_level_required: 'intermediate',
@@ -52,7 +59,27 @@ const FindOpponent: React.FC = () => {
         .eq('status', 'open')
         .order('match_date', { ascending: true });
       
-      setMatchRequests(matchesData || []);
+      const matches = matchesData || [];
+      setMatchRequests(matches);
+
+      // If there's a request_id in URL, focus on it
+      if (requestId) {
+        const focused = matches.find(m => m.id === requestId);
+        if (focused) {
+          setFocusedMatch(focused);
+        } else {
+          // Try fetching it specifically if not in open list (might be matched already or just not in top 20)
+          const { data: specificMatch } = await supabase
+            .from('match_requests')
+            .select('*, team:teams(*), pitch:pitches(*)')
+            .eq('id', requestId)
+            .single();
+          
+          if (specificMatch) {
+            setFocusedMatch(specificMatch);
+          }
+        }
+      }
 
       // Fetch all teams
       const { data: allTeamsData } = await supabase
@@ -138,23 +165,48 @@ const FindOpponent: React.FC = () => {
     }
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('match_requests')
         .insert({
           ...newMatch,
           team_id: newMatch.team_id,
           pitch_id: newMatch.pitch_id || null,
+          opponent_team_id: newMatch.opponent_team_id || null,
           status: 'open'
-        });
+        })
+        .select('*, team:teams(*), pitch:pitches(*)')
+        .single();
 
       if (error) throw error;
 
-      toast.success('Match request posted!');
+      setLastPostedMatch(data);
       setIsPosting(false);
+      setShowShareModal(true);
       fetchData();
     } catch (error: any) {
       toast.error(error.message || 'Error posting match');
     }
+  };
+
+  const shareToWhatsApp = (match: MatchRequest) => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const shareUrl = `${baseUrl}?request_id=${match.id}`;
+    const teamName = match.team?.name || 'Our Team';
+    const date = format(new Date(match.match_date), 'MMM d');
+    const time = match.match_time.slice(0, 5);
+    const pitch = match.pitch?.name || 'Location TBD';
+    
+    const opponentTeam = allTeams.find(t => t.id === match.opponent_team_id);
+    let message = "";
+    
+    if (opponentTeam) {
+      message = `⚽ *MATCH CHALLENGE!* ⚽\n\n*${teamName}* has challenged *${opponentTeam.name}* to a match!\n\n📅 *Date:* ${date}\n🕒 *Time:* ${time}\n📍 *Pitch:* ${pitch}\n\nClick the link below to view the request and accept the challenge:\n${shareUrl}`;
+    } else {
+      message = `⚽ *MATCH CHALLENGE!* ⚽\n\n*${teamName}* is looking for an opponent!\n\n📅 *Date:* ${date}\n🕒 *Time:* ${time}\n📍 *Pitch:* ${pitch}\n\nClick the link below to accept the challenge and book the match:\n${shareUrl}`;
+    }
+    
+    const phone = opponentTeam?.captain_phone || '';
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleAcceptChallenge = async (matchId: string) => {
@@ -364,9 +416,36 @@ const FindOpponent: React.FC = () => {
       {/* Post Match Modal */}
       {isPosting && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setIsPosting(false)}></div>
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => {
+            setIsPosting(false);
+            setNewMatch(prev => ({ ...prev, opponent_team_id: '', description: '' }));
+          }}></div>
           <div className="relative w-full max-w-lg glass p-8 rounded-2xl neon-border">
-            <h2 className="text-2xl font-bold mb-6">Post Match Request</h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Post Match Request</h2>
+              <button onClick={() => {
+                setIsPosting(false);
+                setNewMatch(prev => ({ ...prev, opponent_team_id: '', description: '' }));
+              }} className="p-2 glass rounded-full hover:bg-white/10">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {newMatch.opponent_team_id && (
+              <div className="mb-6 p-4 glass bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                  <span className="text-sm font-bold">Challenging: <span className="text-emerald-400">{allTeams.find(t => t.id === newMatch.opponent_team_id)?.name}</span></span>
+                </div>
+                <button 
+                  onClick={() => setNewMatch(prev => ({ ...prev, opponent_team_id: '', description: '' }))}
+                  className="text-[10px] uppercase tracking-widest font-bold text-slate-500 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+
             {myTeams.length > 0 ? (
               <form onSubmit={handlePostMatch} className="space-y-6">
                 <div>
@@ -576,7 +655,7 @@ const FindOpponent: React.FC = () => {
                 </a>
                 <button 
                   onClick={() => {
-                    setNewMatch(prev => ({ ...prev, description: `Challenging ${team.name}!` }));
+                    setNewMatch(prev => ({ ...prev, description: `Challenging ${team.name}!`, opponent_team_id: team.id }));
                     setIsPosting(true);
                   }}
                   className="flex-1 btn-primary py-2 text-[10px]"
@@ -588,6 +667,103 @@ const FindOpponent: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Share to WhatsApp Modal */}
+      {showShareModal && lastPostedMatch && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setShowShareModal(false)}></div>
+          <div className="relative w-full max-w-md glass p-10 rounded-3xl neon-border text-center">
+            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-6">
+              <Share2 className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-bold mb-4 neon-text">Share Challenge!</h2>
+            <p className="text-slate-300 mb-8 leading-relaxed">
+              Your match request is live! Share it on WhatsApp to find an opponent faster.
+            </p>
+            <div className="space-y-4">
+              <button 
+                onClick={() => shareToWhatsApp(lastPostedMatch)}
+                className="btn-primary w-full py-4 text-lg font-bold flex items-center justify-center space-x-3"
+              >
+                <MessageCircle className="w-6 h-6" />
+                <span>Send to WhatsApp</span>
+              </button>
+              <button 
+                onClick={() => setShowShareModal(false)}
+                className="text-slate-500 hover:text-white transition-colors text-sm font-bold uppercase tracking-widest"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Focused Match Modal (from Link) */}
+      {focusedMatch && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setFocusedMatch(null)}></div>
+          <div className="relative w-full max-w-lg glass p-8 rounded-3xl neon-border">
+            <button 
+              onClick={() => setFocusedMatch(null)}
+              className="absolute top-4 right-4 p-2 glass rounded-full hover:bg-white/10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto mb-4 border border-white/10 overflow-hidden">
+                {focusedMatch.team?.logo_url ? (
+                  <img src={focusedMatch.team.logo_url} alt={focusedMatch.team.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Users className="w-10 h-10 text-slate-600" />
+                )}
+              </div>
+              <h2 className="text-2xl font-bold">{focusedMatch.team?.name}</h2>
+              <p className="text-emerald-400 font-bold uppercase tracking-widest text-xs mt-1">
+                {focusedMatch.team?.skill_level} Level
+              </p>
+            </div>
+
+            <div className="glass bg-white/5 p-6 rounded-2xl mb-8 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-xs uppercase tracking-widest font-bold">Match Date</span>
+                <span className="font-bold">{format(new Date(focusedMatch.match_date), 'EEEE, MMM d, yyyy')}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-xs uppercase tracking-widest font-bold">Kickoff Time</span>
+                <span className="font-bold">{focusedMatch.match_time.slice(0, 5)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 text-xs uppercase tracking-widest font-bold">Location</span>
+                <span className="font-bold">{focusedMatch.pitch?.name || 'Location TBD'}</span>
+              </div>
+              {focusedMatch.bet_amount > 0 && (
+                <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                  <span className="text-yellow-500 text-xs uppercase tracking-widest font-bold">Match Stake</span>
+                  <span className="font-bold text-yellow-400 text-lg">KSH {focusedMatch.bet_amount.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
+            {focusedMatch.status === 'open' ? (
+              <button 
+                onClick={() => {
+                  handleAcceptChallenge(focusedMatch.id);
+                  setFocusedMatch(null);
+                }}
+                className="btn-primary w-full py-4 text-lg font-bold"
+              >
+                Accept Challenge
+              </button>
+            ) : (
+              <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 rounded-xl text-center">
+                <p className="text-yellow-500 font-bold">This match has already been matched!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Welcome Note Modal */}
       {showWelcomeNote && (
