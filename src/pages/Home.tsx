@@ -439,14 +439,6 @@ const Home: React.FC = () => {
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Goals Scored</span>
-                  <span className="text-emerald-400 font-black">0</span>
-                </div>
-                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div className="w-0 h-full bg-emerald-500"></div>
-                </div>
-
-                <div className="flex justify-between items-center">
                   <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Passion Level</span>
                   <span className="text-emerald-400 font-black">∞</span>
                 </div>
