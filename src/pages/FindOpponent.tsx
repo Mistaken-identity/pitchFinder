@@ -92,6 +92,12 @@ const FindOpponent: React.FC = () => {
     fetchData();
   }, [user]);
 
+  useEffect(() => {
+    if (myTeams.length > 0 && !newMatch.team_id) {
+      setNewMatch(prev => ({ ...prev, team_id: myTeams[0].id }));
+    }
+  }, [myTeams, newMatch.team_id]);
+
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -126,11 +132,18 @@ const FindOpponent: React.FC = () => {
     e.preventDefault();
     if (!user) return;
 
+    if (!newMatch.team_id) {
+      toast.error('Please select one of your teams first');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('match_requests')
         .insert({
           ...newMatch,
+          team_id: newMatch.team_id,
+          pitch_id: newMatch.pitch_id || null,
           status: 'open'
         });
 
