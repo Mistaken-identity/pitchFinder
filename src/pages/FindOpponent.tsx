@@ -814,27 +814,61 @@ const FindOpponent: React.FC = () => {
       {showWelcomeNote && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={() => setShowWelcomeNote(false)}></div>
-          <div className="relative w-full max-w-md glass p-10 rounded-3xl neon-border text-center">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-6">
-              <Trophy className="w-10 h-10" />
+          <div className="relative w-full max-w-lg glass p-10 rounded-3xl neon-border overflow-hidden">
+            {/* Decorative Background Element */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl"></div>
+            
+            <div className="relative z-10 text-center">
+              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-6 border border-white/10 rotate-3 group-hover:rotate-0 transition-transform">
+                <Trophy className="w-10 h-10" />
+              </div>
+              
+              <h2 className="text-3xl font-black mb-4 tracking-tight">
+                TEAM <span className="neon-text italic">REGISTERED!</span>
+              </h2>
+              
+              <div className="space-y-4 mb-8">
+                <div className="glass bg-white/5 p-4 rounded-xl border border-white/5 relative">
+                  <span className="absolute -top-3 left-4 px-2 bg-slate-900 text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Captain's Briefing</span>
+                  <p className="text-slate-300 leading-relaxed italic text-sm">
+                    "Congrats on forming your squad! Remember: in this league, 'VAR' stands for 'Very Angry Referee' and 'Clean Sheet' is something you'll only see in your laundry. Try not to trip over the ball—it's the round thing that doesn't like being kicked into the parking lot."
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="glass bg-white/5 p-3 rounded-xl border border-white/5 text-left">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Pro Tip #1</p>
+                    <p className="text-xs text-slate-400">Blaming the pitch is a valid strategy for missing sitters.</p>
+                  </div>
+                  <div className="glass bg-white/5 p-3 rounded-xl border border-white/5 text-left">
+                    <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Pro Tip #2</p>
+                    <p className="text-xs text-slate-400">Hydration means water, not just post-match sodas.</p>
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                onClick={() => {
+                  setShowWelcomeNote(false);
+                  if (pendingMatchId) {
+                    handleAcceptChallenge(pendingMatchId);
+                    setPendingMatchId(null);
+                  }
+                  navigate('/dashboard');
+                }}
+                className="btn-primary w-full py-4 text-lg font-bold mb-6 shadow-lg shadow-emerald-500/20"
+              >
+                Enter the Arena
+              </button>
+
+              <div className="pt-6 border-t border-white/5 flex items-center justify-center space-x-2">
+                <span className="text-[10px] text-slate-500 uppercase tracking-[0.2em]">Crafted by</span>
+                <div className="px-2 py-1 glass bg-white/5 rounded border border-white/10">
+                  <span className="text-[10px] font-black text-emerald-400 italic">TONY TEFLON</span>
+                </div>
+              </div>
             </div>
-            <h2 className="text-3xl font-bold mb-4 neon-text">Welcome to the Pitch!</h2>
-            <p className="text-slate-300 mb-8 leading-relaxed italic">
-              "Congratulations on successfully creating your team! Remember, in football, the ball is round, but your chances of winning are currently flat. Try not to break any legs—unless they're the opponent's. See you on the pitch, if you don't chicken out first!"
-            </p>
-            <button 
-              onClick={() => {
-                setShowWelcomeNote(false);
-                if (pendingMatchId) {
-                  handleAcceptChallenge(pendingMatchId);
-                  setPendingMatchId(null);
-                }
-                navigate('/dashboard');
-              }}
-              className="btn-primary w-full py-4 text-lg font-bold"
-            >
-              Let's Get Thrashed!
-            </button>
           </div>
         </div>
       )}

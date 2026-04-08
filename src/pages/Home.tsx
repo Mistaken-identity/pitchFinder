@@ -11,13 +11,16 @@ import { Pitch } from '../types';
 import PitchCard from '../components/PitchCard';
 
 const HUMOR_QUOTES = [
-  "In football, the ball is round. In coding, the bugs are everywhere. Both will ruin your weekend.",
-  "Why did the developer go to the football match? To see the 'pitch' deck.",
-  "My code is like a Sunday league defender: slow, buggy, and always missing the target.",
-  "A 'clean sheet' in football is a dream. A 'clean build' in coding is a miracle.",
-  "Footballers dive for penalties. Developers dive into stack overflow. Both are looking for a quick fix.",
-  "Referees use VAR. Developers use console.log. Both still get it wrong half the time.",
-  "The only thing more stressful than a penalty shootout is a production deployment on a Friday."
+  "Football is a simple game. Twenty-two men chase a ball for 90 minutes and at the end, the Germans always win.",
+  "I spent a lot of money on booze, birds and fast cars. The rest I just squandered.",
+  "The first 90 minutes are the most important.",
+  "VAR: Providing 4K resolution of referees making the same mistakes as before.",
+  "My team's defense is like a screen door on a submarine.",
+  "I'm not saying my team is bad, but our goalkeeper has a 'Welcome' mat in front of the net.",
+  "Football: The only place where a 'clean sheet' is a good thing and 'getting sacked' is a bad thing.",
+  "I once asked a referee if he could see. He said 'No, I'm a referee, not a miracle worker.'",
+  "The ball is round, the game is 90 minutes, and everything else is just theory.",
+  "If you're first, you're first. If you're second, you're nothing."
 ];
 
 const STATS = [
@@ -377,50 +380,82 @@ const Home: React.FC = () => {
       </section>
 
       {/* Animated Humor & Founder Recognition */}
-      <section className="py-24 border-t border-white/5 bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <div className="mb-20 h-32 flex items-center justify-center">
+      <section className="py-24 border-t border-white/5 bg-slate-950 relative overflow-hidden">
+        {/* Subtle background glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/5 rounded-full blur-[120px] pointer-events-none"></div>
+        
+        <div className="max-w-7xl mx-auto px-4 text-center relative z-10">
+          <div className="mb-24 h-32 flex items-center justify-center">
             <AnimatePresence mode="wait">
               <motion.div
                 key={quoteIndex}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1.05 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.5 }}
                 className="flex flex-col items-center space-y-6 max-w-3xl"
               >
-                <div className="flex space-x-4">
-                  <Code className="w-8 h-8 text-emerald-500 shrink-0" />
-                  <Trophy className="w-8 h-8 text-emerald-500 shrink-0" />
-                </div>
-                <p className="text-2xl md:text-3xl font-bold text-slate-300 italic leading-tight">"{HUMOR_QUOTES[quoteIndex]}"</p>
+                <Trophy className="w-10 h-10 text-emerald-500/30" />
+                <p className="text-2xl md:text-4xl font-black text-slate-200 italic leading-tight tracking-tight">
+                  "{HUMOR_QUOTES[quoteIndex]}"
+                </p>
               </motion.div>
             </AnimatePresence>
           </div>
           
-          <div className="pt-16 border-t border-white/5 flex flex-col items-center">
-            <div className="w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-8">
-              <Code className="w-10 h-10 text-emerald-400" />
+          <div className="pt-16 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-12 text-left">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Founder's Vision</span>
+              </div>
+              <h4 className="text-3xl font-black mb-4">Antony Emong'oluk</h4>
+              <p className="text-slate-400 leading-relaxed mb-6">
+                "PitchFinder KE was born from a simple frustration: finding a place to play shouldn't be harder than the game itself. We're building the digital infrastructure for Kenyan football, empowering every player to find their turf and every owner to maximize their reach."
+              </p>
+              <div className="flex items-center space-x-6">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3, 4].map(i => (
+                    <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center overflow-hidden">
+                      <img src={`https://i.pravatar.cc/100?u=${i}`} alt="User" className="w-full h-full object-cover" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-xs text-slate-500 font-medium">Joined by 5,000+ players across Kenya</span>
+              </div>
             </div>
-            <p className="text-slate-500 text-sm uppercase tracking-[0.4em] mb-4 font-black">Architected & Founded by</p>
-            <h4 className="text-4xl md:text-5xl font-black neon-text mb-4">Antony Emong'oluk</h4>
-            <p className="text-slate-400 max-w-xl mx-auto leading-relaxed">
-              "I built PitchFinder KE to bridge the gap between technology and the beautiful game. Whether you're a pro or a Sunday league legend, this platform is for you."
-            </p>
-            <div className="flex space-x-6 mt-10">
-              <div className="text-center">
-                <div className="text-emerald-400 font-bold">10k+</div>
-                <div className="text-[10px] uppercase text-slate-600 tracking-widest">Lines of Code</div>
+
+            <div className="glass p-8 rounded-3xl border border-white/10 bg-white/5 flex flex-col items-center justify-center min-w-[280px] relative group">
+              <div className="absolute -top-4 -right-4 w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center text-slate-950 rotate-12 group-hover:rotate-0 transition-transform">
+                <Code className="w-6 h-6" />
               </div>
-              <div className="w-px h-10 bg-white/10"></div>
-              <div className="text-center">
-                <div className="text-emerald-400 font-bold">0</div>
-                <div className="text-[10px] uppercase text-slate-600 tracking-widest">Goals Scored</div>
+              <div className="space-y-6 w-full">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Code Quality</span>
+                  <span className="text-emerald-400 font-black">100%</span>
+                </div>
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-full h-full bg-emerald-500"></div>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Goals Scored</span>
+                  <span className="text-emerald-400 font-black">0</span>
+                </div>
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-0 h-full bg-emerald-500"></div>
+                </div>
+
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">Passion Level</span>
+                  <span className="text-emerald-400 font-black">∞</span>
+                </div>
+                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div className="w-full h-full bg-cyan-500"></div>
+                </div>
               </div>
-              <div className="w-px h-10 bg-white/10"></div>
-              <div className="text-center">
-                <div className="text-emerald-400 font-bold">∞</div>
-                <div className="text-[10px] uppercase text-slate-600 tracking-widest">Passion</div>
+              <div className="mt-8 pt-6 border-t border-white/5 w-full text-center">
+                <span className="text-[10px] text-slate-500 uppercase tracking-[0.3em]">Crafted with ❤️ in Kenya</span>
               </div>
             </div>
           </div>
