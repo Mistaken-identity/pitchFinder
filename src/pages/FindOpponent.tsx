@@ -270,14 +270,28 @@ const FindOpponent: React.FC = () => {
         </div>
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           <button 
-            onClick={() => setIsCreatingTeam(true)}
+            onClick={() => {
+              if (!user) {
+                toast.error('Please login to create a team');
+                navigate('/login');
+                return;
+              }
+              setIsCreatingTeam(true);
+            }}
             className="btn-secondary flex items-center justify-center space-x-2 px-6 py-3"
           >
             <ShieldCheck className="w-5 h-5" />
             <span>Create Team</span>
           </button>
           <button 
-            onClick={() => setIsPosting(true)}
+            onClick={() => {
+              if (!user) {
+                toast.error('Please login to post a match');
+                navigate('/login');
+                return;
+              }
+              setIsPosting(true);
+            }}
             className="btn-primary flex items-center justify-center space-x-2 px-6 py-3"
           >
             <Plus className="w-5 h-5" />
@@ -298,6 +312,12 @@ const FindOpponent: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {matchRequests.map((match) => (
                 <div key={match.id} className="glass p-6 rounded-2xl neon-border flex flex-col h-full">
+                  {match.opponent_team_id && (
+                    <div className="mb-4 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center">
+                      <ShieldCheck className="w-3 h-3 mr-1" />
+                      Targeted Challenge
+                    </div>
+                  )}
                   <div className="flex items-center space-x-4 mb-6">
                     <div className="w-14 h-14 rounded-xl bg-slate-800 flex items-center justify-center overflow-hidden border border-white/10">
                       {match.team?.logo_url ? (
@@ -355,7 +375,17 @@ const FindOpponent: React.FC = () => {
             <div className="text-center py-20 glass bg-white/5 rounded-3xl border border-dashed border-white/10">
               <Trophy className="w-12 h-12 text-slate-700 mx-auto mb-4" />
               <p className="text-slate-500">No open challenges at the moment.</p>
-              <button onClick={() => setIsPosting(true)} className="text-emerald-400 font-bold mt-2 hover:underline">
+              <button 
+                onClick={() => {
+                  if (!user) {
+                    toast.error('Please login to post a match');
+                    navigate('/login');
+                    return;
+                  }
+                  setIsPosting(true);
+                }} 
+                className="text-emerald-400 font-bold mt-2 hover:underline"
+              >
                 Be the first to post a match!
               </button>
             </div>
@@ -386,7 +416,17 @@ const FindOpponent: React.FC = () => {
             ) : (
               <div className="text-center py-6">
                 <p className="text-xs text-slate-500 mb-4">You haven't created a team yet.</p>
-                <button onClick={() => setIsCreatingTeam(true)} className="btn-secondary w-full text-xs">
+                <button 
+                  onClick={() => {
+                    if (!user) {
+                      toast.error('Please login to create a team');
+                      navigate('/login');
+                      return;
+                    }
+                    setIsCreatingTeam(true);
+                  }} 
+                  className="btn-secondary w-full text-xs"
+                >
                   Create Your First Team
                 </button>
               </div>
@@ -655,6 +695,11 @@ const FindOpponent: React.FC = () => {
                 </a>
                 <button 
                   onClick={() => {
+                    if (!user) {
+                      toast.error('Please login to challenge this team');
+                      navigate('/login');
+                      return;
+                    }
                     setNewMatch(prev => ({ ...prev, description: `Challenging ${team.name}!`, opponent_team_id: team.id }));
                     setIsPosting(true);
                   }}
