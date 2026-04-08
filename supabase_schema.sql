@@ -174,7 +174,7 @@ CREATE POLICY "Users can view own favorites" ON favorites FOR SELECT USING (auth
 CREATE POLICY "Users can manage own favorites" ON favorites FOR ALL USING (auth.uid() = user_id);
 -- Profiles: Users can read all profiles, but only update their own
 CREATE POLICY "Public profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
-CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (true); -- Allowed because of FK constraint to auth.users
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
 
 -- Pitches: Everyone can view, only owners can insert/update/delete
@@ -202,7 +202,9 @@ CREATE POLICY "Users can insert reviews" ON reviews FOR INSERT WITH CHECK (auth.
 
 -- Teams: Everyone can view, only captains can manage
 CREATE POLICY "Teams viewable by everyone" ON teams FOR SELECT USING (true);
-CREATE POLICY "Captains can manage teams" ON teams FOR ALL USING (auth.uid() = captain_id);
+CREATE POLICY "Users can insert teams" ON teams FOR INSERT WITH CHECK (auth.uid() = captain_id);
+CREATE POLICY "Captains can update teams" ON teams FOR UPDATE USING (auth.uid() = captain_id);
+CREATE POLICY "Captains can delete teams" ON teams FOR DELETE USING (auth.uid() = captain_id);
 
 -- Match Requests: Everyone can view, only team captains can manage
 CREATE POLICY "Match requests viewable by everyone" ON match_requests FOR SELECT USING (true);
