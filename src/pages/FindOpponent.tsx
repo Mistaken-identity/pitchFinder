@@ -55,7 +55,7 @@ const FindOpponent: React.FC = () => {
       // Fetch open match requests
       const { data: matchesData } = await supabase
         .from('match_requests')
-        .select('*, team:teams(*), pitch:pitches(*)')
+        .select('*, team:teams!team_id(*), pitch:pitches(*)')
         .eq('status', 'open')
         .order('match_date', { ascending: true });
       
@@ -71,7 +71,7 @@ const FindOpponent: React.FC = () => {
           // Try fetching it specifically if not in open list (might be matched already or just not in top 20)
           const { data: specificMatch } = await supabase
             .from('match_requests')
-            .select('*, team:teams(*), pitch:pitches(*)')
+            .select('*, team:teams!team_id(*), pitch:pitches(*)')
             .eq('id', requestId)
             .single();
           
@@ -174,7 +174,7 @@ const FindOpponent: React.FC = () => {
           opponent_team_id: newMatch.opponent_team_id || null,
           status: 'open'
         })
-        .select('*, team:teams(*), pitch:pitches(*)')
+        .select('*, team:teams!team_id(*), pitch:pitches(*)')
         .single();
 
       if (error) throw error;

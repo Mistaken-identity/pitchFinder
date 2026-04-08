@@ -39,7 +39,7 @@ const Dashboard: React.FC = () => {
         const teamIds = teamsData.map(t => t.id);
         const { data: matchesData } = await supabase
           .from('match_requests')
-          .select('*, team:teams(*), pitch:pitches(*)')
+          .select('*, team:teams!team_id(*), pitch:pitches(*)')
           .in('team_id', teamIds)
           .order('match_date', { ascending: true });
         
