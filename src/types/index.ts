@@ -94,7 +94,7 @@ export interface Notification {
   user_id: string;
   title: string;
   message: string;
-  type: 'match_request' | 'match_confirmed' | 'booking' | 'payment';
+  type: 'match_request' | 'match_confirmed' | 'booking' | 'booking_confirmed' | 'booking_cancelled' | 'payment';
   read: boolean;
   link: string | null;
   created_at: string;

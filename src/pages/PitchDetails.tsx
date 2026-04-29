@@ -217,6 +217,15 @@ const PitchDetails: React.FC = () => {
           link: '/owner-dashboard'
         });
 
+        // Notify user
+        await supabase.from('notifications').insert({
+          user_id: user!.id,
+          title: 'Booking Confirmed!',
+          message: `Your booking for ${pitch!.name} on ${format(new Date(bookingDate), 'MMM d')} at ${startTime} has been confirmed.`,
+          type: 'booking_confirmed',
+          link: '/dashboard'
+        });
+
         setShowConfirmation(true);
         setIsPaying(false);
         setPaymentStatus('idle');

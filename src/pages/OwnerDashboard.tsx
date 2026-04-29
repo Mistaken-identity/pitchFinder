@@ -266,6 +266,20 @@ const OwnerDashboard: React.FC = () => {
 
       if (error) throw error;
 
+      // Find the booking details from the current state to notify the user
+      const booking = bookings.find(b => b.id === bookingId);
+      if (booking) {
+        await supabase.from('notifications').insert({
+          user_id: booking.user_id,
+          title: status === 'confirmed' ? 'Booking Confirmed!' : 'Booking Cancelled',
+          message: status === 'confirmed' 
+            ? `Your booking for ${booking.pitch?.name} on ${format(new Date(booking.booking_date), 'MMM d')} has been confirmed by the owner.`
+            : `Your booking for ${booking.pitch?.name} on ${format(new Date(booking.booking_date), 'MMM d')} has been cancelled.`,
+          type: status === 'confirmed' ? 'booking_confirmed' : 'booking_cancelled',
+          link: '/dashboard'
+        });
+      }
+
       toast.success(`Booking ${status}`);
       fetchData();
     } catch (error: any) {
