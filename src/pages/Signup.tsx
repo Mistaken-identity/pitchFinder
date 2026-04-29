@@ -14,10 +14,19 @@ const Signup: React.FC = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('https://api.dicebear.com/7.x/personas/svg?seed=Lucky');
   const [role, setRole] = useState<UserRole>(initialRole);
   const [loading, setLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const navigate = useNavigate();
+
+  const AVATARS = [
+    { id: '1', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Lucky', label: 'Striker' },
+    { id: '2', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Bailey', label: 'Midfielder' },
+    { id: '3', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Oliver', label: 'Defender' },
+    { id: '4', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Willow', label: 'Winger' },
+    { id: '5', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Ziggy', label: 'Goalie' },
+  ];
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +50,7 @@ const Signup: React.FC = () => {
           full_name: fullName,
           role,
           phone,
+          avatar_url: avatarUrl,
         });
 
       if (profileError) throw profileError;
@@ -91,6 +101,43 @@ const Signup: React.FC = () => {
               <ShieldCheck className="w-6 h-6" />
               <span className="font-bold">Pitch Owner</span>
             </button>
+          </div>
+          
+          {/* Avatar Selection */}
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-slate-300 mb-4 text-center">Choose your Player Profile</label>
+            <div className="flex flex-wrap justify-center gap-4">
+              {AVATARS.map((avatar) => (
+                <button
+                  key={avatar.id}
+                  type="button"
+                  onClick={() => setAvatarUrl(avatar.url)}
+                  className={`group relative p-1 rounded-2xl border-2 transition-all duration-300 hover:scale-110 ${
+                    avatarUrl === avatar.url 
+                      ? 'border-emerald-500 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.3)]' 
+                      : 'border-white/5 bg-white/5 hover:border-white/20'
+                  }`}
+                >
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-800">
+                    <img src={avatar.url} alt={avatar.label} className="w-full h-full object-cover" />
+                  </div>
+                  
+                  {/* Football Juggling Decoration */}
+                  <div className={`absolute -top-3 -right-3 w-8 h-8 flex items-center justify-center transition-all duration-700 ${
+                    avatarUrl === avatar.url ? 'scale-100 opacity-100' : 'scale-0 opacity-0'
+                  }`}>
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-emerald-500 rounded-full blur-sm opacity-50 animate-pulse"></div>
+                      <span className="relative z-10 text-xl animate-bounce" style={{ display: 'inline-block' }}>⚽</span>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">{avatar.label}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -177,9 +224,17 @@ const Signup: React.FC = () => {
         <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md"></div>
           <div className="relative w-full max-w-md glass p-10 rounded-3xl neon-border text-center">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mx-auto mb-6">
-              <Trophy className="w-10 h-10" />
+            {/* Juggling Avatar in Welcome Modal */}
+            <div className="relative w-32 h-32 mx-auto mb-8">
+              <div className="w-full h-full rounded-3xl overflow-hidden bg-slate-800 border-2 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+              <div className="absolute -top-4 -right-4 w-12 h-12 flex items-center justify-center">
+                <span className="text-3xl animate-bounce" style={{ display: 'inline-block' }}>⚽</span>
+                <div className="absolute inset-0 bg-emerald-500 rounded-full blur-md opacity-30 animate-pulse"></div>
+              </div>
             </div>
+            
             <h2 className="text-3xl font-bold mb-4 neon-text">Welcome to the Squad!</h2>
             <p className="text-slate-300 mb-8 leading-relaxed italic">
               "You've successfully signed up! Your coding skills might be better than your finishing, but at least here you won't get a red card for a syntax error. Prepare to be thrashed on the pitch and mocked in the chat. Welcome to PitchFinder KE!"
