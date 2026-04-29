@@ -71,14 +71,17 @@ const Signup: React.FC = () => {
       <div className="absolute top-1/4 -left-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
-      <div className="max-w-6xl w-full flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-24 relative z-10">
+      <div className="max-w-6xl w-full flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-24 relative z-10 transition-all duration-700">
         
         {/* Animated Juggler Section */}
         <motion.div 
+          layout
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="w-full lg:flex-1 flex flex-col items-center justify-center text-center lg:text-left order-2 lg:order-1 px-4"
+          transition={{ duration: 0.8, layout: { duration: 0.8, ease: "easeInOut" } }}
+          className={`w-full lg:flex-1 flex flex-col items-center justify-center text-center lg:text-left px-4 ${
+            role === 'player' ? 'order-2 lg:order-1' : 'order-2 lg:order-2'
+          }`}
         >
           <div className="relative w-full max-w-[260px] md:max-w-sm aspect-square flex items-center justify-center">
             <JugglingCharacter 
@@ -93,16 +96,24 @@ const Signup: React.FC = () => {
               <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">Elite Scout Verified</span>
             </div>
             <h3 className="text-2xl md:text-5xl font-black italic tracking-tighter text-white mb-4">
-              MASTER YOUR <span className="neon-text">GAME.</span>
+              {role === 'player' ? 'MASTER YOUR' : 'MANAGE YOUR'} <span className="neon-text italic">{role === 'player' ? 'GAME.' : 'VENUE.'}</span>
             </h3>
             <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">
-              Join the elite circle of Kenyan ballers. Find teammates, book pitches, and dominate the local scene.
+              {role === 'player' 
+                ? 'Join the elite circle of Kenyan ballers. Find teammates, book pitches, and dominate the local scene.'
+                : 'Turn your pitch into a premier destination. Reach more teams, manage bookings with ease, and grow your business.'}
             </p>
           </div>
         </motion.div>
 
         {/* Signup Form Section */}
-        <div className="w-full lg:max-w-xl glass p-8 md:p-12 rounded-3xl neon-border relative group">
+        <motion.div 
+          layout
+          transition={{ layout: { duration: 0.8, ease: "easeInOut" } }}
+          className={`w-full lg:max-w-xl glass p-8 md:p-12 rounded-3xl neon-border relative group ${
+            role === 'player' ? 'order-1 lg:order-2' : 'order-1 lg:order-1'
+          }`}
+        >
           {/* Subtle Form Decoration */}
           <div className="absolute -top-px left-20 right-20 h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
           
@@ -257,8 +268,8 @@ const Signup: React.FC = () => {
             <Link to="/login" className="text-emerald-400 hover:underline">Sign in</Link>
           </p>
         </div>
+        </motion.div>
       </div>
-    </div>
 
       {/* Welcome Modal */}
       {showWelcome && (
