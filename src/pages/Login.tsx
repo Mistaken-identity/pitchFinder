@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabase';
 import { Mail, Lock, Loader2, Trophy } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
+import JugglingCharacter from '../components/JugglingCharacter';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -49,67 +50,10 @@ const Login: React.FC = () => {
           className="flex-1 flex flex-col items-center justify-center text-center lg:text-left order-2 lg:order-1 px-4"
         >
           <div className="relative w-full max-w-[280px] md:max-w-sm aspect-square flex items-center justify-center">
-            {/* Stage/Aura */}
-            <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-[100px] animate-pulse"></div>
-            
-            {/* Player Character */}
-            <motion.div 
-              animate={{ 
-                y: [0, -12, 0],
-                rotate: [0, 1, -1, 0] 
-              }}
-              transition={{ 
-                duration: 4, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-              className="relative z-10"
-            >
-              <div className="w-40 h-40 md:w-64 md:h-64 rounded-[48px] bg-slate-900 border-2 border-emerald-500/30 flex items-center justify-center relative overflow-hidden shadow-[0_0_60px_rgba(16,185,129,0.2)]">
-                <img 
-                  src="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=0f172a" 
-                  alt="Player" 
-                  className="w-full h-full object-cover scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 via-transparent to-transparent"></div>
-              </div>
-              
-              {/* Specialized Shadow */}
-              <motion.div 
-                animate={{ 
-                  scaleX: [1, 1.2, 1], 
-                  opacity: [0.3, 0.5, 0.3],
-                  width: ['100%', '110%', '100%']
-                }}
-                transition={{ duration: 4, repeat: Infinity }}
-                className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-4/5 h-4 bg-black/60 rounded-[100%] blur-xl"
-              ></motion.div>
-            </motion.div>
-
-            {/* Pro Juggling Ball */}
-            <motion.div
-              animate={{
-                y: [-80, -320, -100, -300, -80, -340],
-                x: [0, 60, -40, 70, -30, 0],
-                rotate: [0, 1080, 2160, 3240, 4320, 5400],
-              }}
-              transition={{
-                duration: 7,
-                repeat: Infinity,
-                ease: "backInOut",
-              }}
-              className="absolute z-20"
-            >
-              <div className="relative">
-                <span className="text-5xl md:text-8xl drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">⚽</span>
-                {/* Visual Kick Effect */}
-                <motion.div 
-                  animate={{ opacity: [0, 0.8, 0], scale: [1, 2, 0.5] }}
-                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 1.5 }}
-                  className="absolute inset-0 bg-emerald-400/20 rounded-full blur-lg"
-                ></motion.div>
-              </div>
-            </motion.div>
+            <JugglingCharacter 
+              avatarUrl="https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=0f172a" 
+              className="scale-75 md:scale-100"
+            />
           </div>
 
           <div className="mt-6 lg:mt-12 max-w-sm mx-auto lg:mx-0">

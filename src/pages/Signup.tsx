@@ -6,6 +6,7 @@ import { Mail, Lock, User, Phone, Loader2, Trophy, ShieldCheck, Users } from 'lu
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { UserRole } from '../types';
+import JugglingCharacter from '../components/JugglingCharacter';
 
 const Signup: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -15,18 +16,18 @@ const Signup: React.FC = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('https://api.dicebear.com/7.x/personas/svg?seed=Lucky');
+  const [avatarUrl, setAvatarUrl] = useState('https://api.dicebear.com/7.x/notionists/svg?seed=Lucky&backgroundColor=0f172a');
   const [role, setRole] = useState<UserRole>(initialRole);
   const [loading, setLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const navigate = useNavigate();
 
   const AVATARS = [
-    { id: '1', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Lucky', label: 'Striker' },
-    { id: '2', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Bailey', label: 'Midfielder' },
-    { id: '3', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Oliver', label: 'Defender' },
-    { id: '4', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Willow', label: 'Winger' },
-    { id: '5', url: 'https://api.dicebear.com/7.x/personas/svg?seed=Ziggy', label: 'Goalie' },
+    { id: '1', url: 'https://api.dicebear.com/7.x/notionists/svg?seed=Lucky&backgroundColor=0f172a', label: 'Striker' },
+    { id: '2', url: 'https://api.dicebear.com/7.x/notionists/svg?seed=Bailey&backgroundColor=0f172a', label: 'Midfielder' },
+    { id: '3', url: 'https://api.dicebear.com/7.x/notionists/svg?seed=Oliver&backgroundColor=0f172a', label: 'Defender' },
+    { id: '4', url: 'https://api.dicebear.com/7.x/notionists/svg?seed=Willow&backgroundColor=0f172a', label: 'Winger' },
+    { id: '5', url: 'https://api.dicebear.com/7.x/notionists/svg?seed=Ziggy&backgroundColor=0f172a', label: 'Goalie' },
   ];
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -65,7 +66,7 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 relative overflow-hidden text-white">
       {/* Background Decorative Elements */}
       <div className="absolute top-1/4 -left-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -80,65 +81,10 @@ const Signup: React.FC = () => {
           className="w-full lg:flex-1 flex flex-col items-center justify-center text-center lg:text-left order-2 lg:order-1 px-4"
         >
           <div className="relative w-full max-w-[260px] md:max-w-sm aspect-square flex items-center justify-center">
-            {/* Player Character Aura */}
-            <div className="absolute inset-0 bg-emerald-500/5 rounded-full blur-[100px] animate-pulse"></div>
-            
-            {/* Player Character */}
-            <motion.div 
-              animate={{ 
-                y: [0, -15, 0],
-                rotate: [0, 0.5, -0.5, 0] 
-              }}
-              transition={{ 
-                duration: 5, 
-                repeat: Infinity, 
-                ease: "easeInOut" 
-              }}
-              className="relative z-10"
-            >
-              <div className="w-44 h-44 md:w-64 md:h-64 rounded-[42px] bg-slate-900 border-2 border-emerald-500/20 flex items-center justify-center relative overflow-hidden shadow-2xl">
-                <img 
-                  src="https://api.dicebear.com/7.x/notionists/svg?seed=Lucky&backgroundColor=0f172a" 
-                  alt="Player Avatar" 
-                  className="w-full h-full object-cover scale-110"
-                />
-                {/* Glow Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 via-transparent to-transparent"></div>
-              </div>
-              
-              {/* Dynamic Shadow */}
-              <motion.div 
-                animate={{ scaleX: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
-                transition={{ duration: 5, repeat: Infinity }}
-                className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-4/5 h-5 bg-black/50 rounded-full blur-xl"
-              ></motion.div>
-            </motion.div>
-
-            {/* Juggling Ball with Skill Patterns */}
-            <motion.div
-              animate={{
-                y: [-120, -380, -160, -340, -110, -360],
-                x: [0, 40, -30, 50, -20, 0],
-                rotate: [0, 720, 1440, 2160, 2880, 3600],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: "backInOut",
-              }}
-              className="absolute z-20"
-            >
-              <div className="relative">
-                <span className="text-6xl md:text-8xl drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">⚽</span>
-                {/* Motion Trails */}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0, 0.4, 0] }}
-                  transition={{ duration: 0.4, repeat: Infinity }}
-                  className="absolute -top-6 -left-6 w-16 h-16 border-2 border-emerald-500/20 rounded-full scale-150"
-                ></motion.div>
-              </div>
-            </motion.div>
+            <JugglingCharacter 
+              avatarUrl={avatarUrl}
+              className="scale-75 md:scale-100"
+            />
           </div>
 
           <div className="mt-8 lg:mt-12 text-center lg:text-left max-w-sm mx-auto lg:mx-0">
