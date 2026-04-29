@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Mail, Lock, User, Phone, Loader2, Trophy, ShieldCheck, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'react-hot-toast';
 import { UserRole } from '../types';
 
@@ -64,15 +65,108 @@ const Signup: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12">
-      <div className="max-w-xl w-full glass p-8 rounded-2xl neon-border">
-        <div className="text-center mb-10">
-          <div className="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_15px_rgba(16,185,129,0.5)]">
-            <Trophy className="w-6 h-6 text-slate-950" />
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+      <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-cyan-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+
+      <div className="max-w-6xl w-full flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-24 relative z-10">
+        
+        {/* Animated Juggler Section */}
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8 }}
+          className="w-full lg:flex-1 flex flex-col items-center justify-center text-center lg:text-left order-2 lg:order-1 px-4"
+        >
+          <div className="relative w-full max-w-[260px] md:max-w-sm aspect-square flex items-center justify-center">
+            {/* Player Character Aura */}
+            <div className="absolute inset-0 bg-emerald-500/5 rounded-full blur-[100px] animate-pulse"></div>
+            
+            {/* Player Character */}
+            <motion.div 
+              animate={{ 
+                y: [0, -15, 0],
+                rotate: [0, 0.5, -0.5, 0] 
+              }}
+              transition={{ 
+                duration: 5, 
+                repeat: Infinity, 
+                ease: "easeInOut" 
+              }}
+              className="relative z-10"
+            >
+              <div className="w-44 h-44 md:w-64 md:h-64 rounded-[42px] bg-slate-900 border-2 border-emerald-500/20 flex items-center justify-center relative overflow-hidden shadow-2xl">
+                <img 
+                  src="https://api.dicebear.com/7.x/notionists/svg?seed=Lucky&backgroundColor=0f172a" 
+                  alt="Player Avatar" 
+                  className="w-full h-full object-cover scale-110"
+                />
+                {/* Glow Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-emerald-500/10 via-transparent to-transparent"></div>
+              </div>
+              
+              {/* Dynamic Shadow */}
+              <motion.div 
+                animate={{ scaleX: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
+                transition={{ duration: 5, repeat: Infinity }}
+                className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-4/5 h-5 bg-black/50 rounded-full blur-xl"
+              ></motion.div>
+            </motion.div>
+
+            {/* Juggling Ball with Skill Patterns */}
+            <motion.div
+              animate={{
+                y: [-120, -380, -160, -340, -110, -360],
+                x: [0, 40, -30, 50, -20, 0],
+                rotate: [0, 720, 1440, 2160, 2880, 3600],
+              }}
+              transition={{
+                duration: 8,
+                repeat: Infinity,
+                ease: "backInOut",
+              }}
+              className="absolute z-20"
+            >
+              <div className="relative">
+                <span className="text-6xl md:text-8xl drop-shadow-[0_0_30px_rgba(255,255,255,0.5)]">⚽</span>
+                {/* Motion Trails */}
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.4, 0] }}
+                  transition={{ duration: 0.4, repeat: Infinity }}
+                  className="absolute -top-6 -left-6 w-16 h-16 border-2 border-emerald-500/20 rounded-full scale-150"
+                ></motion.div>
+              </div>
+            </motion.div>
           </div>
-          <h2 className="text-3xl font-bold tracking-tight">Create Account</h2>
-          <p className="text-slate-400 mt-2">Join the PitchFinder KE community</p>
-        </div>
+
+          <div className="mt-8 lg:mt-12 text-center lg:text-left max-w-sm mx-auto lg:mx-0">
+            <div className="hidden sm:inline-flex items-center space-x-3 px-4 py-2 rounded-full bg-emerald-500/5 border border-emerald-500/10 mb-6">
+              <Trophy className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">Elite Scout Verified</span>
+            </div>
+            <h3 className="text-2xl md:text-5xl font-black italic tracking-tighter text-white mb-4">
+              MASTER YOUR <span className="neon-text">GAME.</span>
+            </h3>
+            <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">
+              Join the elite circle of Kenyan ballers. Find teammates, book pitches, and dominate the local scene.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Signup Form Section */}
+        <div className="w-full lg:max-w-xl glass p-8 md:p-12 rounded-3xl neon-border relative group">
+          {/* Subtle Form Decoration */}
+          <div className="absolute -top-px left-20 right-20 h-px bg-gradient-to-r from-transparent via-emerald-500 to-transparent"></div>
+          
+          <div className="text-center mb-10">
+            <div className="w-14 h-14 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/20 rotate-3 group-hover:rotate-0 transition-transform">
+              <Trophy className="w-7 h-7 text-slate-950" />
+            </div>
+            <h2 className="text-4xl font-black tracking-tight mb-2">CREATE <span className="neon-text italic">ACCOUNT</span></h2>
+            <p className="text-slate-400 font-medium">Step onto the digital pitch today.</p>
+          </div>
 
         <form onSubmit={handleSignup} className="space-y-6">
           {/* Role Selection */}
@@ -218,6 +312,7 @@ const Signup: React.FC = () => {
           </p>
         </div>
       </div>
+    </div>
 
       {/* Welcome Modal */}
       {showWelcome && (
