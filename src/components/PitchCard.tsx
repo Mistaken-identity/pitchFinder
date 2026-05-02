@@ -159,9 +159,14 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
         <div className="p-4 flex-grow">
           <div className="flex justify-between items-start mb-2">
             <h3 className="font-bold text-lg leading-tight">{pitch.name}</h3>
-            <div className="flex items-center text-yellow-400">
-              <Star className="w-4 h-4 fill-current" />
-              <span className="ml-1 text-sm font-bold">{pitch.rating || 'New'}</span>
+            <div className="flex flex-col items-end">
+              <div className="flex items-center text-yellow-400">
+                <Star className="w-4 h-4 fill-current" />
+                <span className="ml-1 text-sm font-bold">{pitch.rating || 'New'}</span>
+              </div>
+              {pitch.review_count > 0 && (
+                <span className="text-[10px] text-slate-500">({pitch.review_count} reviews)</span>
+              )}
             </div>
           </div>
           

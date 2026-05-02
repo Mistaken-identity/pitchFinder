@@ -408,11 +408,16 @@ const OwnerDashboard: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="mt-2 flex items-center justify-between text-xs">
+                    <div className="mt-2 flex items-center justify-between text-[10px]">
                       <span className="text-emerald-400 font-bold">KSH {pitch.price_per_hour}/hr</span>
-                      <div className="flex items-center text-yellow-400">
-                        <Star className="w-3 h-3 fill-current mr-0.5" />
-                        <span>{pitch.rating || 'N/A'}</span>
+                      <div className="flex flex-col items-end">
+                        <div className="flex items-center text-yellow-400">
+                          <Star className="w-3 h-3 fill-current mr-0.5" />
+                          <span className="font-bold">{pitch.rating || 'N/A'}</span>
+                        </div>
+                        {pitch.review_count > 0 && (
+                          <span className="text-slate-500 tracking-tighter">({pitch.review_count} reviews)</span>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -25,6 +25,9 @@ const PitchDetails: React.FC = () => {
   const [paymentPhone, setPaymentPhone] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+  const [userReview, setUserReview] = useState<{ rating: number; comment: string }>({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // Booking Form State
   const [bookingDate, setBookingDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -90,6 +93,29 @@ const PitchDetails: React.FC = () => {
       
       if (reviewsError) throw reviewsError;
       setReviews(reviewsData || []);
+
+      // Check if user can review
+      if (user) {
+        // Find a confirmed booking that has passed
+        const now = new Date().toISOString();
+        const { data: userBookings } = await supabase
+          .from('bookings')
+          .select('id')
+          .eq('pitch_id', id)
+          .eq('user_id', user.id)
+          .eq('status', 'confirmed')
+          .lt('booking_date', format(new Date(), 'yyyy-MM-dd'));
+
+        // Check if user already reviewed
+        const { data: existingReview } = await supabase
+          .from('reviews')
+          .select('id')
+          .eq('pitch_id', id)
+          .eq('user_id', user.id)
+          .single();
+
+        setCanReview(!!userBookings?.length && !existingReview);
+      }
     } catch (error: any) {
       toast.error('Error loading pitch details');
       navigate('/discover');
@@ -237,6 +263,52 @@ const PitchDetails: React.FC = () => {
         setBookingLoading(false);
       }
     }, 3000);
+  };
+
+  const submitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !id) return;
+
+    try {
+      setSubmittingReview(true);
+      const { error } = await supabase
+        .from('reviews')
+        .insert({
+          pitch_id: id,
+          user_id: user.id,
+          rating: userReview.rating,
+          comment: userReview.comment
+        });
+
+      if (error) throw error;
+
+      // Update pitch rating and count
+      const { data: allReviews } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('pitch_id', id);
+
+      if (allReviews && allReviews.length > 0) {
+        const totalRating = allReviews.reduce((acc, curr) => acc + curr.rating, 0);
+        const avgRating = Number((totalRating / allReviews.length).toFixed(1));
+        
+        await supabase
+          .from('pitches')
+          .update({
+            rating: avgRating,
+            review_count: allReviews.length
+          })
+          .eq('id', id);
+      }
+
+      toast.success('Review submitted successfully!');
+      setCanReview(false);
+      fetchPitchDetails(); // Refresh details to show new review and updated rating
+    } catch (error: any) {
+      toast.error(error.message || 'Error submitting review');
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   if (loading) {
@@ -599,37 +671,97 @@ const PitchDetails: React.FC = () => {
 
             {/* Reviews Section */}
           <div className="glass p-8 rounded-2xl neon-border">
-            <h3 className="text-xl font-bold mb-6">Reviews & Ratings</h3>
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-bold">Reviews & Ratings</h3>
+              <div className="flex items-center space-x-2 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
+                <Star className="w-4 h-4 text-emerald-400 fill-current" />
+                <span className="text-lg font-bold text-emerald-400">{pitch.rating || '0.0'}</span>
+                <span className="text-xs text-slate-500">({pitch.review_count || 0})</span>
+              </div>
+            </div>
+
+            {canReview && (
+              <div className="mb-10 p-6 glass bg-white/5 rounded-2xl border border-emerald-500/30">
+                <h4 className="font-bold mb-4 flex items-center space-x-2">
+                  <Star className="w-4 h-4 text-emerald-400" />
+                  <span>Your Experience Matters</span>
+                </h4>
+                <form onSubmit={submitReview} className="space-y-4">
+                  <div>
+                    <label className="block text-xs text-slate-500 uppercase tracking-widest mb-3">Rate your match</label>
+                    <div className="flex space-x-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => setUserReview({ ...userReview, rating: star })}
+                          className={`p-2 transition-all ${userReview.rating >= star ? 'text-yellow-400 scale-110' : 'text-slate-700 hover:text-slate-500'}`}
+                        >
+                          <Star className={`w-8 h-8 ${userReview.rating >= star ? 'fill-current' : ''}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-500 uppercase tracking-widest mb-2">Share details (Optional)</label>
+                    <textarea 
+                      placeholder="Comment on the turf quality, lighting, facilities..."
+                      className="w-full glass bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-emerald-500/50 transition-all min-h-[100px]"
+                      value={userReview.comment}
+                      onChange={(e) => setUserReview({ ...userReview, comment: e.target.value })}
+                    />
+                  </div>
+                  <button 
+                    type="submit" 
+                    disabled={submittingReview}
+                    className="btn-primary w-full py-4 text-sm font-bold flex items-center justify-center space-x-2"
+                  >
+                    {submittingReview ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Post Review</span>}
+                  </button>
+                </form>
+              </div>
+            )}
+
             {reviews.length > 0 ? (
               <div className="space-y-6">
                 {reviews.map((review) => (
-                  <div key={review.id} className="border-b border-white/5 pb-6 last:border-0">
-                    <div className="flex justify-between items-start mb-2">
+                  <div key={review.id} className="glass bg-white/5 p-6 rounded-2xl border border-white/5 hover:border-white/10 transition-all">
+                    <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
+                        <div className="w-12 h-12 rounded-full bg-slate-900 flex items-center justify-center overflow-hidden border border-white/10">
                           {review.user?.avatar_url ? (
                             <img src={review.user.avatar_url} alt={review.user.full_name || ''} className="w-full h-full object-cover" />
                           ) : (
-                            <Users className="w-5 h-5 text-slate-500" />
+                            <Users className="w-6 h-6 text-slate-500" />
                           )}
                         </div>
                         <div>
-                          <p className="font-bold">{review.user?.full_name || 'Anonymous Player'}</p>
-                          <p className="text-xs text-slate-500">{format(new Date(review.created_at), 'MMM d, yyyy')}</p>
+                          <p className="font-bold text-slate-200">{review.user?.full_name || 'Anonymous Player'}</p>
+                          <div className="flex items-center space-x-2">
+                            <div className="flex items-center text-yellow-400">
+                              {[...Array(5)].map((_, i) => (
+                                <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-current' : 'opacity-20'}`} />
+                              ))}
+                            </div>
+                            <span className="text-[10px] text-slate-500 uppercase tracking-tighter">{format(new Date(review.created_at), 'MMM d, yyyy')}</span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center text-yellow-400">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-current' : 'text-slate-700'}`} />
-                        ))}
+                      <div className="bg-emerald-500/10 px-2 py-1 rounded text-emerald-400 text-[10px] font-bold uppercase tracking-widest border border-emerald-500/20">
+                        Verified Player
                       </div>
                     </div>
-                    <p className="text-slate-400 text-sm italic">"{review.comment}"</p>
+                    {review.comment && (
+                      <p className="text-slate-400 text-sm leading-relaxed italic">"{review.comment}"</p>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-slate-500 text-center py-8">No reviews yet. Be the first to play here!</p>
+              <div className="text-center py-12 glass bg-white/5 rounded-2xl border border-dashed border-white/10">
+                <Star className="w-12 h-12 text-slate-800 mx-auto mb-4" />
+                <p className="text-slate-500">No reviews yet. Be the first to play here!</p>
+              </div>
             )}
           </div>
         </div>
