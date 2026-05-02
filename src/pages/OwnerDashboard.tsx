@@ -37,8 +37,10 @@ const OwnerDashboard: React.FC = () => {
   const [isPaying, setIsPaying] = useState(false);
   const [paymentPhone, setPaymentPhone] = useState('');
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<PitchImage[]>([]);
+  const [primaryImageIndex, setPrimaryImageIndex] = useState<number>(0);
 
   // New Pitch Form State
   const [newPitch, setNewPitch] = useState({
@@ -117,13 +119,11 @@ const OwnerDashboard: React.FC = () => {
       try {
         setIsSubmitting(true);
         
-        let imageUrl = newPitch.image_url;
-        if (selectedFile) {
-          imageUrl = await uploadImage(selectedFile);
-        }
-
+        const uploadedUrls = await uploadImages(selectedFiles);
         const { image_url: _, ...pitchData } = newPitch;
         
+        let pitchId = editingPitchId;
+
         if (isEditingPitch && editingPitchId) {
           const { error: updateError } = await supabase
             .from('pitches')
@@ -131,30 +131,6 @@ const OwnerDashboard: React.FC = () => {
             .eq('id', editingPitchId);
           
           if (updateError) throw updateError;
-
-          if (imageUrl) {
-            // Update or insert primary image
-            const { data: existingImage } = await supabase
-              .from('pitch_images')
-              .select('id')
-              .eq('pitch_id', editingPitchId)
-              .eq('is_primary', true)
-              .single();
-            
-            if (existingImage) {
-              await supabase
-                .from('pitch_images')
-                .update({ image_url: imageUrl })
-                .eq('id', existingImage.id);
-            } else {
-              await supabase.from('pitch_images').insert({
-                pitch_id: editingPitchId,
-                image_url: imageUrl,
-                is_primary: true
-              });
-            }
-          }
-          toast.success('Pitch updated successfully!');
         } else {
           const { data: pitch, error: pitchError } = await supabase
             .from('pitches')
@@ -166,14 +142,7 @@ const OwnerDashboard: React.FC = () => {
             .single();
 
           if (pitchError) throw pitchError;
-
-          if (imageUrl) {
-            await supabase.from('pitch_images').insert({
-              pitch_id: pitch.id,
-              image_url: imageUrl,
-              is_primary: true
-            });
-          }
+          pitchId = pitch.id;
 
           // Record payment
           await supabase.from('payments').insert({
@@ -184,16 +153,35 @@ const OwnerDashboard: React.FC = () => {
             type: 'pitch_listing',
             reference_id: pitch.id
           });
-          toast.success('Pitch added successfully!');
         }
+
+        if (pitchId) {
+          // Handle Images
+          // 1. New uploads
+          if (uploadedUrls.length > 0) {
+            const imageInserts = uploadedUrls.map((url, index) => ({
+              pitch_id: pitchId,
+              image_url: url,
+              is_primary: index === primaryImageIndex
+            }));
+            await supabase.from('pitch_images').insert(imageInserts);
+          }
+
+          // 2. Handle existing images (if we added a way to delete them or change primary)
+          // For now, if no new images are primary, ensure at least one existing image is primary if it was before
+        }
+
+        toast.success(isEditingPitch ? 'Pitch updated successfully!' : 'Pitch added successfully!');
 
         setIsAddingPitch(false);
         setIsEditingPitch(false);
         setEditingPitchId(null);
         setIsPaying(false);
         setPaymentStatus('idle');
-        setSelectedFile(null);
-        setImagePreview(null);
+        setSelectedFiles([]);
+        setImagePreviews([]);
+        setExistingImages([]);
+        setPrimaryImageIndex(0);
         setNewPitch({
           name: '',
           location_name: '',
@@ -226,35 +214,40 @@ const OwnerDashboard: React.FC = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (e.target.files) {
+      const files = Array.from(e.target.files);
+      setSelectedFiles(prev => [...prev, ...files]);
+      
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
   };
 
-  const uploadImage = async (file: File) => {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${user?.id}/${fileName}`;
+  const uploadImages = async (files: File[]) => {
+    const uploadPromises = files.map(async (file) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${user?.id}/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from('pitches')
-      .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage
+        .from('pitches')
+        .upload(filePath, file);
 
-    if (uploadError) {
-      throw uploadError;
-    }
+      if (uploadError) throw uploadError;
 
-    const { data } = supabase.storage
-      .from('pitches')
-      .getPublicUrl(filePath);
+      const { data } = supabase.storage
+        .from('pitches')
+        .getPublicUrl(filePath);
 
-    return data.publicUrl;
+      return data.publicUrl;
+    });
+
+    return Promise.all(uploadPromises);
   };
 
   const handleUpdateBookingStatus = async (bookingId: string, status: 'confirmed' | 'cancelled') => {
@@ -356,55 +349,75 @@ const OwnerDashboard: React.FC = () => {
           {pitches.length > 0 ? (
             pitches.map(pitch => (
               <div key={pitch.id} className="glass p-4 rounded-xl neon-border group">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="font-bold">{pitch.name}</h3>
-                    <p className="text-xs text-slate-500">{pitch.location_name}</p>
+                <div className="flex space-x-4 mb-4">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 border border-white/10 relative">
+                    <img 
+                      src={pitch.images?.[0]?.image_url || 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=200'} 
+                      alt={pitch.name} 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-bold text-white uppercase">{pitch.images?.length || 0} Photos</span>
+                    </div>
                   </div>
-                  <div className="flex space-x-2">
-                    <button 
-                      onClick={() => {
-                        setNewPitch({
-                          name: pitch.name,
-                          location_name: pitch.location_name,
-                          latitude: pitch.latitude,
-                          longitude: pitch.longitude,
-                          price_per_hour: pitch.price_per_hour,
-                          description: pitch.description || '',
-                          contact_phone: pitch.contact_phone || '',
-                          whatsapp_number: pitch.whatsapp_number || '',
-                          image_url: pitch.images?.[0]?.image_url || ''
-                        });
-                        setImagePreview(pitch.images?.[0]?.image_url || null);
-                        setEditingPitchId(pitch.id);
-                        setIsEditingPitch(true);
-                        setIsAddingPitch(true);
-                      }}
-                      className="p-2 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={async () => {
-                        if (window.confirm('Are you sure you want to delete this pitch?')) {
-                          try {
-                            const { error } = await supabase.from('pitches').delete().eq('id', pitch.id);
-                            if (error) throw error;
-                            toast.success('Pitch deleted');
-                            fetchData();
-                          } catch (err: any) {
-                            toast.error(err.message);
-                          }
-                        }
-                      }}
-                      className="p-2 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start">
+                      <div className="truncate">
+                        <h3 className="font-bold truncate">{pitch.name}</h3>
+                        <p className="text-xs text-slate-500 truncate">{pitch.location_name}</p>
+                      </div>
+                      <div className="flex space-x-1">
+                        <button 
+                          onClick={() => {
+                            setNewPitch({
+                              name: pitch.name,
+                              location_name: pitch.location_name,
+                              latitude: pitch.latitude,
+                              longitude: pitch.longitude,
+                              price_per_hour: pitch.price_per_hour,
+                              description: pitch.description || '',
+                              contact_phone: pitch.contact_phone || '',
+                              whatsapp_number: pitch.whatsapp_number || '',
+                              image_url: pitch.images?.[0]?.image_url || ''
+                            });
+                            setExistingImages(pitch.images || []);
+                            setEditingPitchId(pitch.id);
+                            setIsEditingPitch(true);
+                            setIsAddingPitch(true);
+                          }}
+                          className="p-1.5 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-emerald-400 transition-colors"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button 
+                          onClick={async () => {
+                            if (window.confirm('Are you sure you want to delete this pitch?')) {
+                              try {
+                                const { error } = await supabase.from('pitches').delete().eq('id', pitch.id);
+                                if (error) throw error;
+                                toast.success('Pitch deleted');
+                                fetchData();
+                              } catch (err: any) {
+                                toast.error(err.message);
+                              }
+                            }
+                          }}
+                          className="p-1.5 glass hover:bg-white/10 rounded-lg text-slate-400 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-xs">
+                      <span className="text-emerald-400 font-bold">KSH {pitch.price_per_hour}/hr</span>
+                      <div className="flex items-center text-yellow-400">
+                        <Star className="w-3 h-3 fill-current mr-0.5" />
+                        <span>{pitch.rating || 'N/A'}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-emerald-400 font-bold">KSH {pitch.price_per_hour}/hr</span>
+                <div className="pt-3 border-t border-white/5 flex justify-end">
                   <Link to={`/pitch/${pitch.id}`} className="text-xs text-slate-500 hover:text-white underline">View Public Page</Link>
                 </div>
               </div>
@@ -589,8 +602,9 @@ const OwnerDashboard: React.FC = () => {
               whatsapp_number: '',
               image_url: ''
             });
-            setImagePreview(null);
-            setSelectedFile(null);
+            setImagePreviews([]);
+            setSelectedFiles([]);
+            setExistingImages([]);
           }}></div>
           <div className="relative w-full max-w-4xl glass p-8 rounded-2xl neon-border max-h-[90vh] overflow-y-auto custom-scrollbar">
             <h2 className="text-2xl font-bold mb-6">{isEditingPitch ? 'Edit Pitch Details' : 'Add New Pitch'}</h2>
@@ -647,47 +661,110 @@ const OwnerDashboard: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-2">Pitch Image</label>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">Pitch Photos</label>
                     <div className="relative">
                       <input 
                         type="file" 
                         accept="image/*"
+                        multiple
                         className="hidden"
-                        id="pitch-image"
+                        id="pitch-images"
                         onChange={handleFileChange}
                       />
                       <label 
-                        htmlFor="pitch-image"
+                        htmlFor="pitch-images"
                         className="w-full glass bg-white/5 border border-white/10 rounded-lg py-3 px-4 focus:outline-none focus:border-emerald-500/50 flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
                       >
-                        {selectedFile ? (
-                          <div className="flex items-center space-x-2">
-                            <ImageIcon className="w-4 h-4 text-emerald-400" />
-                            <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <Upload className="w-4 h-4 text-slate-500" />
-                            <span className="text-sm text-slate-500">Upload Facility Image</span>
-                          </div>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          <Upload className="w-4 h-4 text-slate-500" />
+                          <span className="text-sm text-slate-400">Upload Multiple Photos</span>
+                        </div>
                       </label>
                     </div>
                   </div>
 
-                  {imagePreview && (
-                    <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/10">
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setSelectedFile(null);
-                          setImagePreview(null);
-                        }}
-                        className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors"
-                      >
-                        <XCircle className="w-4 h-4" />
-                      </button>
+                  {/* Image Gallery/Carousel */}
+                  {(existingImages.length > 0 || imagePreviews.length > 0) && (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500 uppercase tracking-widest font-bold">Gallery ({existingImages.length + imagePreviews.length} photos)</p>
+                        <p className="text-[10px] text-emerald-500/70 italic">Click the star to set as primary display photo</p>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        {existingImages.map((img) => (
+                          <div key={img.id} className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all group ${img.is_primary ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-white/5 hover:border-white/20'}`}>
+                            <img src={img.image_url} alt="Existing" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                              <div className="flex space-x-2">
+                                <button 
+                                  type="button"
+                                  onClick={async () => {
+                                    if (window.confirm('Delete this image permanently?')) {
+                                      await supabase.from('pitch_images').delete().eq('id', img.id);
+                                      setExistingImages(prev => prev.filter(p => p.id !== img.id));
+                                      toast.success('Image deleted');
+                                    }
+                                  }}
+                                  className="p-2 bg-red-500/80 hover:bg-red-500 rounded-lg text-white transition-colors"
+                                  title="Delete Image"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                {!img.is_primary && (
+                                  <button 
+                                    type="button"
+                                    onClick={async () => {
+                                      // Reset all to not primary
+                                      await supabase.from('pitch_images').update({ is_primary: false }).eq('pitch_id', img.pitch_id);
+                                      // Set this one to primary
+                                      await supabase.from('pitch_images').update({ is_primary: true }).eq('id', img.id);
+                                      setExistingImages(prev => prev.map(p => ({ ...p, is_primary: p.id === img.id })));
+                                      toast.success('Primary image updated');
+                                    }}
+                                    className="p-2 bg-emerald-500/80 hover:bg-emerald-500 rounded-lg text-white transition-colors"
+                                    title="Set as Primary"
+                                  >
+                                    <Star className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            {img.is_primary && (
+                              <div className="absolute top-2 left-2 bg-emerald-500 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-lg">Primary</div>
+                            )}
+                          </div>
+                        ))}
+                        {imagePreviews.map((preview, idx) => (
+                          <div key={idx} className={`relative aspect-video rounded-xl overflow-hidden border-2 transition-all group ${(!existingImages.some(img => img.is_primary) && idx === primaryImageIndex) ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'border-emerald-500/30 hover:border-emerald-500/50'}`}>
+                            <img src={preview} alt="New" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+                              <div className="flex space-x-2">
+                                <button 
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedFiles(prev => prev.filter((_, i) => i !== idx));
+                                    setImagePreviews(prev => prev.filter((_, i) => i !== idx));
+                                    if (primaryImageIndex === idx) setPrimaryImageIndex(0);
+                                  }}
+                                  className="p-2 bg-red-500/80 hover:bg-red-500 rounded-lg text-white transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                                <button 
+                                  type="button"
+                                  onClick={() => setPrimaryImageIndex(idx)}
+                                  className={`p-2 rounded-lg transition-colors ${idx === primaryImageIndex ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-white hover:bg-emerald-500'}`}
+                                >
+                                  <Star className={`w-4 h-4 ${idx === primaryImageIndex ? 'fill-current' : ''}`} />
+                                </button>
+                              </div>
+                            </div>
+                            {idx === primaryImageIndex && !existingImages.some(img => img.is_primary) && (
+                              <div className="absolute top-2 left-2 bg-emerald-500 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter shadow-lg">Primary</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
 
