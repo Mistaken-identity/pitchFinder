@@ -11,13 +11,17 @@ import { motion } from 'motion/react';
 interface PitchCardProps {
   pitch: Pitch & { owner?: Profile };
   compact?: boolean;
+  selectedDate?: string;
+  selectedTime?: string;
+  isAvailable?: boolean;
 }
 
-const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
+const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false, selectedDate, selectedTime, isAvailable }) => {
   const { user } = useAuth();
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isBookedNow, setIsBookedNow] = useState(false);
+  const [isBookedAtSelected, setIsBookedAtSelected] = useState(false);
 
   const primaryImage = pitch.images?.find(img => img.is_primary)?.image_url || 
     (pitch.images?.[0]?.image_url) || 
@@ -28,14 +32,21 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
       checkIfFavorite();
     }
     checkCurrentBooking();
-  }, [user, pitch.id]);
+    if (isAvailable === undefined && selectedDate && selectedTime) {
+      checkSelectedBooking();
+    } else if (isAvailable !== undefined) {
+      setIsBookedAtSelected(!isAvailable);
+    } else {
+      setIsBookedAtSelected(false);
+    }
+  }, [user, pitch.id, selectedDate, selectedTime, isAvailable]);
 
   const checkCurrentBooking = async () => {
     const now = new Date();
     const today = now.toISOString().split('T')[0];
     const currentTime = now.toTimeString().split(' ')[0].substring(0, 5); // HH:mm
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('bookings')
       .select('id')
       .eq('pitch_id', pitch.id)
@@ -44,9 +55,22 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
       .lte('start_time', currentTime)
       .gt('end_time', currentTime);
 
-    if (data && data.length > 0) {
-      setIsBookedNow(true);
-    }
+    setIsBookedNow(!!data && data.length > 0);
+  };
+
+  const checkSelectedBooking = async () => {
+    if (!selectedDate || !selectedTime) return;
+
+    const { data } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('pitch_id', pitch.id)
+      .eq('booking_date', selectedDate)
+      .eq('status', 'confirmed')
+      .lte('start_time', selectedTime)
+      .gt('end_time', selectedTime);
+
+    setIsBookedAtSelected(!!data && data.length > 0);
   };
 
   const checkIfFavorite = async () => {
@@ -148,9 +172,14 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
             <div className="glass px-2 py-1 rounded text-xs font-bold text-emerald-400">
               KSH {pitch.price_per_hour}/hr
             </div>
-            {isBookedNow && (
+            {isBookedNow && !selectedDate && (
               <div className="bg-red-500/80 backdrop-blur-sm px-2 py-1 rounded text-[10px] font-black text-white uppercase tracking-widest animate-pulse">
                 Currently Booked
+              </div>
+            )}
+            {selectedDate && selectedTime && (
+              <div className={`px-2 py-1 rounded text-[10px] font-black text-white uppercase tracking-widest backdrop-blur-sm ${isBookedAtSelected ? 'bg-red-500/80' : 'bg-emerald-500/80'}`}>
+                {isBookedAtSelected ? 'Booked for slot' : 'Available for slot'}
               </div>
             )}
           </div>
@@ -175,6 +204,13 @@ const PitchCard: React.FC<PitchCardProps> = ({ pitch, compact = false }) => {
               <MapPin className="w-4 h-4 mr-1 text-emerald-500" />
               <span className="truncate">{pitch.location_name}</span>
             </div>
+            
+            {selectedDate && selectedTime && (
+              <div className={`flex items-center text-xs font-bold ${isBookedAtSelected ? 'text-red-400' : 'text-emerald-400'}`}>
+                <Clock className="w-3.5 h-3.5 mr-1" />
+                <span>{isBookedAtSelected ? 'Unavailable at your time' : 'Available at your time'}</span>
+              </div>
+            )}
             
             {pitch.owner && (
               <Link 

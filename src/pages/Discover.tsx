@@ -58,7 +58,7 @@ const Discover: React.FC = () => {
   const [filterTime, setFilterTime] = useState(format(addHours(new Date(), 1), 'HH:00'));
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [showAvailableOnly, setShowAvailableOnly] = useState(false);
+  const [showAvailableOnly, setShowAvailableOnly] = useState(true);
 
   const fetchPitches = async () => {
     try {
@@ -119,14 +119,14 @@ const Discover: React.FC = () => {
     setMap(null);
   }, []);
 
-  const isPitchAvailable = (pitchId: string) => {
-    if (!showAvailableOnly || !filterDate || !filterTime) return true;
+  const getPitchAvailability = (pitchId: string) => {
+    if (!filterDate || !filterTime) return true;
     
     const selectedStart = `${filterDate}T${filterTime}`;
     // Assume 1 hour duration for filtering
     const selectedEnd = format(addHours(parseISO(selectedStart), 1), "yyyy-MM-dd'T'HH:mm");
 
-    return !bookings.some(booking => {
+    const isBooked = bookings.some(booking => {
       if (booking.pitch_id !== pitchId) return false;
       
       const bookingStart = `${booking.booking_date}T${booking.start_time}`;
@@ -135,12 +135,19 @@ const Discover: React.FC = () => {
       // Check overlap: (StartA < EndB) and (EndA > StartB)
       return (selectedStart < bookingEnd && selectedEnd > bookingStart);
     });
+
+    return !isBooked;
+  };
+
+  const isPitchAvailableForFilter = (pitchId: string) => {
+    if (!showAvailableOnly) return true;
+    return getPitchAvailability(pitchId);
   };
 
   const filteredPitches = pitches.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          p.location_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesAvailability = isPitchAvailable(p.id);
+    const matchesAvailability = isPitchAvailableForFilter(p.id);
     return matchesSearch && matchesAvailability;
   });
 
@@ -162,15 +169,14 @@ const Discover: React.FC = () => {
           <div className="flex items-center justify-between">
             <button 
               onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center space-x-2 text-xs font-bold uppercase tracking-widest transition-colors ${showFilters ? 'text-emerald-400' : 'text-slate-400 hover:text-emerald-400'}`}
+              className={`flex items-center space-x-2 text-xs font-bold uppercase tracking-widest transition-all px-3 py-1.5 rounded-lg border ${showFilters ? 'text-emerald-400 border-emerald-500/50 bg-emerald-500/10' : 'text-slate-400 border-white/10 hover:border-emerald-500/30 bg-white/5 hover:text-emerald-400'}`}
             >
               <Filter className="w-3.5 h-3.5" />
-              <span>Filters</span>
+              <span>{showFilters ? 'Hide Filters' : 'Availability Filter'}</span>
               {showFilters ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
             </button>
             <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{filteredPitches.length} pitches found</span>
-              <Link to="/seed" className="text-[8px] text-emerald-500/50 hover:text-emerald-500 uppercase tracking-widest mt-1">Seed Data</Link>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{filteredPitches.length} results</span>
             </div>
           </div>
 
@@ -248,7 +254,12 @@ const Discover: React.FC = () => {
                 setSelectedPitch(pitch);
                 if (map) map.panTo({ lat: pitch.latitude, lng: pitch.longitude });
               }}>
-                <PitchCard pitch={pitch} />
+                <PitchCard 
+                  pitch={pitch} 
+                  selectedDate={filterDate}
+                  selectedTime={filterTime}
+                  isAvailable={getPitchAvailability(pitch.id)}
+                />
               </div>
             ))
           ) : (
@@ -270,17 +281,22 @@ const Discover: React.FC = () => {
             onUnmount={onUnmount}
             options={mapOptions}
           >
-            {filteredPitches.map(pitch => (
-              <Marker
-                key={pitch.id}
-                position={{ lat: pitch.latitude, lng: pitch.longitude }}
-                onClick={() => setSelectedPitch(pitch)}
-                icon={{
-                  url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                  scaledSize: new google.maps.Size(40, 40)
-                }}
-              />
-            ))}
+            {filteredPitches.map(pitch => {
+              const isAvailable = getPitchAvailability(pitch.id);
+              return (
+                <Marker
+                  key={pitch.id}
+                  position={{ lat: pitch.latitude, lng: pitch.longitude }}
+                  onClick={() => setSelectedPitch(pitch)}
+                  icon={{
+                    url: isAvailable 
+                      ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                      : 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+                    scaledSize: new google.maps.Size(40, 40)
+                  }}
+                />
+              );
+            })}
 
             {selectedPitch && (
               <InfoWindow
