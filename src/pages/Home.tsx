@@ -82,7 +82,7 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col bg-slate-950 text-slate-50 overflow-x-hidden">
+    <div className="flex flex-col bg-slate-950 text-slate-50 overflow-x-hidden bg-grid">
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
@@ -90,8 +90,8 @@ const Home: React.FC = () => {
             initial={{ scale: 1.1, opacity: 0 }}
             animate={{ scale: 1, opacity: 0.3 }}
             transition={{ duration: 1.5 }}
-            src="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=2000" 
-            alt="Football Pitch" 
+            src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000" 
+            alt="Cinematic Football Stadium" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
