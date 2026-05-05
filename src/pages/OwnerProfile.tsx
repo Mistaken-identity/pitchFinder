@@ -13,6 +13,11 @@ const OwnerProfile: React.FC = () => {
   const [owner, setOwner] = useState<Profile | null>(null);
   const [pitches, setPitches] = useState<Pitch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    avgRating: 0,
+    totalBookings: 0,
+    countWithRatings: 0
+  });
 
   const fetchOwnerData = async () => {
     try {
@@ -35,7 +40,34 @@ const OwnerProfile: React.FC = () => {
         .order('created_at', { ascending: false });
       
       if (pitchesError) throw pitchesError;
-      setPitches(pitchesData || []);
+      const pitchesList = pitchesData || [];
+      setPitches(pitchesList);
+
+      // Calculate stats
+      const pitchIds = pitchesList.map(p => p.id);
+      
+      if (pitchIds.length > 0) {
+        // Fetch total bookings for all of this owner's pitches
+        const { count: bookingsCount, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('id', { count: 'exact', head: true })
+          .in('pitch_id', pitchIds)
+          .eq('status', 'confirmed');
+
+        if (bookingsError) throw bookingsError;
+
+        const pitchesWithRatings = pitchesList.filter(p => (p.rating || 0) > 0);
+        const totalRating = pitchesWithRatings.reduce((acc, p) => acc + (p.rating || 0), 0);
+        const avgRating = pitchesWithRatings.length > 0 
+          ? Number((totalRating / pitchesWithRatings.length).toFixed(1)) 
+          : 0;
+
+        setStats({
+          avgRating,
+          totalBookings: bookingsCount || 0,
+          countWithRatings: pitchesWithRatings.length
+        });
+      }
     } catch (error: any) {
       console.error('Error fetching owner data:', error);
       toast.error('Error loading owner profile');
@@ -95,6 +127,18 @@ const OwnerProfile: React.FC = () => {
               <div className="flex items-center justify-between text-sm py-3 border-b border-white/5">
                 <span className="text-slate-500">Total Pitches</span>
                 <span className="font-bold text-emerald-400">{pitches.length}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm py-3 border-b border-white/5">
+                <span className="text-slate-500">Avg Rating</span>
+                <div className="flex items-center text-yellow-400">
+                  <Star className="w-3 h-3 mr-1 fill-current" />
+                  <span className="font-bold">{stats.avgRating > 0 ? stats.avgRating : 'N/A'}</span>
+                  {stats.countWithRatings > 0 && <span className="text-[10px] text-slate-500 ml-1">({stats.countWithRatings})</span>}
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm py-3 border-b border-white/5">
+                <span className="text-slate-500">Total Bookings</span>
+                <span className="font-bold text-emerald-400">{stats.totalBookings}</span>
               </div>
               <div className="flex items-center justify-between text-sm py-3 border-b border-white/5">
                 <span className="text-slate-500">Identity Status</span>

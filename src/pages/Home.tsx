@@ -90,7 +90,7 @@ const Home: React.FC = () => {
             initial={{ scale: 1.1, opacity: 0 }}
             animate={{ scale: 1, opacity: 0.3 }}
             transition={{ duration: 1.5 }}
-            src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=2000" 
+            src="https://images.unsplash.com/photo-1508098682722-e99c43a406b2?auto=format&fit=crop&q=80&w=2000" 
             alt="Football Pitch" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
@@ -280,11 +280,11 @@ const Home: React.FC = () => {
       <section className="py-32 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
           <div className="glass rounded-[30px] md:rounded-[40px] overflow-hidden border border-white/10 flex flex-col lg:flex-row">
-            <div className="lg:w-1/2 relative h-64 sm:h-80 lg:h-auto">
+            <div className="lg:w-1/2 relative h-64 sm:h-80 lg:h-auto overflow-hidden">
               <img 
-                src="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=1200" 
+                src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200" 
                 alt="Featured Pitch" 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover hover:scale-110 transition-transform duration-1000"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute top-4 left-4 sm:top-6 sm:left-6 bg-emerald-500 text-slate-950 px-3 py-1 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-tighter shadow-xl">
