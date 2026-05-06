@@ -90,8 +90,8 @@ const Home: React.FC = () => {
             initial={{ scale: 1.1, opacity: 0 }}
             animate={{ scale: 1, opacity: 0.3 }}
             transition={{ duration: 1.5 }}
-            src="https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&q=80&w=2000" 
-            alt="Cinematic Football Stadium" 
+            src="https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&q=80&w=2000" 
+            alt="Cinematic Football Atmosphere" 
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
@@ -282,8 +282,8 @@ const Home: React.FC = () => {
           <div className="glass rounded-[30px] md:rounded-[40px] overflow-hidden border border-white/10 flex flex-col lg:flex-row">
             <div className="lg:w-1/2 relative h-64 sm:h-80 lg:h-auto overflow-hidden">
               <img 
-                src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=1200" 
-                alt="Featured Pitch" 
+                src="https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&q=80&w=1200" 
+                alt="Modern Football Arena" 
                 className="w-full h-full object-cover hover:scale-110 transition-transform duration-1000"
                 referrerPolicy="no-referrer"
               />
